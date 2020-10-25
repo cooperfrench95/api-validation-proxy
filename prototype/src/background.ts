@@ -5,11 +5,9 @@ import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
-const unhandled = require("electron-unhandled");
-const { ipcMain: ipc } = require("electron");
-const { dialog } = require("electron");
-const { exec } = require("child_process");
-const fs = require("fs");
+import unhandled from "electron-unhandled";
+import { ipcMain as ipc, dialog } from "electron";
+import fs from "fs";
 
 // https://github.com/sindresorhus/electron-unhandled
 // Can open a dialog with a report button
@@ -76,13 +74,13 @@ function createWindow() {
     win = null;
   });
 
-  ipc.on("request", (event: string, data: object) => {
+  ipc.on("request", (event, data: object) => {
     console.log("request", data);
     if (backgroundWin) backgroundWin.webContents.send("request", data);
     else throw new Error("Background win is null on ipcMain request");
   });
 
-  ipc.on("response", (event: string, data: object) => {
+  ipc.on("response", (event, data: object) => {
     console.log("response", data);
     if (win) win.webContents.send("response", data);
     else throw new Error("Win is null on ipcMain response");

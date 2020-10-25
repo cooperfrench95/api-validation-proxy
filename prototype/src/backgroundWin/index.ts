@@ -26,7 +26,8 @@ let actualURL = "http://localhost:3030";
 ipc.on("request", async (event, data) => {
   switch (data.event) {
     case "change-backend-url":
-      actualURL = data.url;
+      console.log(data);
+      actualURL = data.data.url;
       ipc.send("response", { url: actualURL, event: "change-backend-url" });
       break;
     case "get-backend-url":
