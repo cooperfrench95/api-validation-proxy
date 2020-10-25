@@ -1,15 +1,16 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
+import { IPCHandler } from "./../IPCHandler";
+import Vue from "vue";
+import Vuex from "vuex";
 
-Vue.use(Vuex)
+Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
+    handler: new IPCHandler()
   },
-  mutations: {
+  getters: {
+    handler: state => state.handler
   },
-  actions: {
-  },
-  modules: {
-  }
-})
+  actions: {},
+  mutations: {}
+});
