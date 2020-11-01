@@ -1,8 +1,11 @@
-import express from "express";
+import { Request, IncomingRequest, IncomingResponse } from "./../types";
+import express, { request } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import axios, { AxiosRequestConfig } from "axios";
 import { ipcRenderer as ipc } from "electron";
+import moment from "moment";
+import { v4 as uuidv4 } from "uuid";
 
 // Axios defaults to XHR in the browser (which electron technically is) so we then can't set headers like origin and host. So we override it to the node one here - it's not a security issue in this use case
 const safeAxios = axios.create({
@@ -17,13 +20,16 @@ const corsOptions = {
   }
 };
 
+const SEND_TO_UI_THREAD = "response";
+const RECEIVE_FROM_UI_THREAD = "request";
+
 const app = express();
 app.use(bodyParser.json());
 app.use(cors(corsOptions));
 
 let actualURL = "http://localhost:3030";
 
-ipc.on("request", async (event, data) => {
+ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
   switch (data.event) {
     case "change-backend-url":
       console.log(data);
@@ -40,16 +46,33 @@ ipc.on("request", async (event, data) => {
 
 app.all("*", async (req, res) => {
   // Log details
-  console.log("-------REQUEST---------");
-  console.log(req.body, "BODY");
-  console.log(req.headers, "HEADERS");
-  console.log(req.method, "METHOD");
-  console.log(req.params, "PARAMS");
-  console.log("-----------------------");
+  // console.log("-------REQUEST---------");
+  // console.log(req.body, "BODY");
+  // console.log(req.headers, "HEADERS");
+  // console.log(req.method, "METHOD");
+  // console.log(req.params, "PARAMS");
+  // console.log(req.hostname, "HOST");
+  // console.log("-----------------------");
+
+  const uniqueIdentifier = uuidv4();
 
   let target = actualURL;
+  let endpoint = "/";
+  let additionalPaths = "";
   if (req.params) {
+    target = target.substr(0, target.length - 1);
+    console.log(target);
+    const path: string[] = req.params[0].split("/");
+    path.splice(0);
+    // Add the path e.g. /employees/2/username to the target url
     target += req.params[0];
+    for (let i = 0; i < path.length; i += 1) {
+      if (i === 0) {
+        endpoint = path[i];
+      } else {
+        additionalPaths += `/${path[i]}`;
+      }
+    }
   }
 
   let method: AxiosRequestConfig["method"];
@@ -92,6 +115,25 @@ app.all("*", async (req, res) => {
   try {
     // TODO Validate incoming request here
 
+    const requestForUIThread: IncomingRequest = {
+      event: "new-request",
+      request: {
+        id: uniqueIdentifier,
+        headers: req.headers,
+        data: req.body,
+        method: req.method,
+        isValid: true,
+        origin: req.hostname,
+        destination: target,
+        endpoint,
+        params: req.query,
+        timestamp: moment().valueOf()
+      }
+    };
+
+    // Let the UI know a request occurred
+    ipc.send(SEND_TO_UI_THREAD, requestForUIThread);
+
     // Send the request through to the target server
     const response = await safeAxios.request({
       method: method,
@@ -101,7 +143,28 @@ app.all("*", async (req, res) => {
       params: req.query
     });
 
+    console.log(response);
+
     // TODO Validate incoming response here
+
+    const responseForUIThread: IncomingResponse = {
+      event: "new-response",
+      response: {
+        id: uniqueIdentifier,
+        headers: response.headers,
+        method: req.method,
+        statusCode: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        isValid: true,
+        responseTime: moment().diff(
+          moment(requestForUIThread.request.timestamp),
+          "ms"
+        )
+      }
+    };
+    // Let the UI know a response occurred
+    ipc.send(SEND_TO_UI_THREAD, responseForUIThread);
 
     // Make our response to the client the same as the response we received from the server
 
@@ -118,6 +181,11 @@ app.all("*", async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500);
+    if (e.code === "ECONNREFUSED") {
+      ipc.send(SEND_TO_UI_THREAD, {
+        event: "backend-down"
+      });
+    }
     res.json({
       message:
         "There was an issue processing your request in the validation proxy",

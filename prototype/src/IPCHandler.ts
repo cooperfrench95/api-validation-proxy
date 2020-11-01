@@ -14,12 +14,22 @@ export class IPCHandler extends EventEmitter {
 
   private listening = false;
 
-  public listen() {
+  public listen(): boolean {
     this.listening = true;
     ipc.on("response", (event, args) => {
       console.log(args.event, args);
       this.emit(args.event, args);
     });
+    return this.listening;
+  }
+
+  public stopListening(): boolean {
+    this.listening = false;
+    return this.listening;
+  }
+
+  public isListening(): boolean {
+    return this.listening;
   }
 
   public send(event: string, data?: any): Promise<IPCHandlerResponse<string>> {

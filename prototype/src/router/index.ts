@@ -14,7 +14,14 @@ if (process.env.IS_ELECTRON) {
   }
 }
 
+const RequestView = () => import("../components/RequestView.vue");
+
 const routes: Array<RouteConfig> = [
+  {
+    path: "/requests",
+    name: "Requests",
+    component: RequestView
+  },
   {
     path: "/",
     name: "Main",

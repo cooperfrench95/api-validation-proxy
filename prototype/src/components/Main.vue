@@ -21,6 +21,11 @@
                 >
               </v-col>
               <v-col cols="12">
+                <v-subheader>
+                  Be sure to point your client to http://localhost:3000
+                </v-subheader>
+              </v-col>
+              <v-col cols="12">
                 <v-btn
                   block
                   color="primary"
@@ -40,19 +45,16 @@
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
-import { mapGetters } from "vuex";
 import { IPCHandler } from "../IPCHandler";
+import { Action, Getter } from 'vuex-class';
+import type { ActionMethod } from 'vuex'
 
-@Component({
-  computed: {
-    ...mapGetters({
-      handler: "handler"
-    })
-  }
-})
-export default class HelloWorld extends Vue {
+@Component
+export default class Main extends Vue {
   url = "";
-  handler!: IPCHandler;
+
+  @Getter('handler') handler!: IPCHandler
+  @Action('setURL') setURL!: ActionMethod
 
   mounted() {
     this.getURL();
@@ -71,12 +73,10 @@ export default class HelloWorld extends Vue {
   ];
 
   async getURL() {
-    console.log("GETTT");
     const response = await this.handler.send("get-backend-url");
-    console.log(response.url, "response");
     if (response.url) {
       this.url = response.url;
-      console.log(this.url);
+      this.setURL(this.url)
     }
   }
 
@@ -85,10 +85,14 @@ export default class HelloWorld extends Vue {
       event: "change-backend-url",
       url: this.url
     });
+    if (response.url === this.url && this.valid) {
+      this.setURL(this.url)
+      this.$router.push("/requests");
+    }
   }
 
   get valid() {
-    return this.url && this.urlRules[0](this.url);
+    return this.url && this.urlRules[0](this.url) === true;
   }
 }
 </script>
