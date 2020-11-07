@@ -65,15 +65,9 @@ function determineType(i: any) {
 function recurseThroughObject(obj: object | any[], template: object | any[]) {
   const invalidFields: invalidField[] = [];
   if (Array.isArray(obj)) {
-    const desiredType = determineType(template[0]);
-    obj.forEach((item: any, index: number) => {
-      if (!typeCheckers[desiredType](item)) {
-        invalidFields.push({
-          key: `${index}`,
-          reason:
-            "Expected " + desiredType + " but received " + determineType(item)
-        });
-      } else if (desiredType === "object" || desiredType === "array") {
+    const desiredType = template[0];
+    if (typeof desiredType !== "string") {
+      obj.forEach((item: any, index: number) => {
         const fieldValidations = recurseThroughObject(item, template[0]);
         fieldValidations.forEach(i => {
           const trueKey = index + "." + i.key;
@@ -82,8 +76,18 @@ function recurseThroughObject(obj: object | any[], template: object | any[]) {
             reason: i.reason
           });
         });
-      }
-    });
+      });
+    } else {
+      obj.forEach((item: any, index: number) => {
+        if (!typeCheckers[desiredType](item)) {
+          invalidFields.push({
+            key: `${index}`,
+            reason:
+              "Expected " + desiredType + " but received " + determineType(item)
+          });
+        }
+      });
+    }
   } else if (typeCheckers.object(obj)) {
     Object.keys(obj).forEach(key => {
       let expectedValue = template[key];
@@ -197,7 +201,6 @@ function checkObject(
   obj: object,
   template: object | object[]
 ): validationResult {
-  let valid = true;
   const invalidFields: invalidField[] = [];
 
   if (!obj) {
@@ -249,6 +252,28 @@ async function validateRequest(
   return {};
 }
 
+function createValidationTemplate(body: object): any {
+  if (typeCheckers.object(body)) {
+    let template = {};
+    Object.keys(body).forEach(key => {
+      const current = body[key];
+      if (typeCheckers.object(current) || typeCheckers.array(current)) {
+        template[key] = createValidationTemplate(current);
+      } else {
+        template[key] = determineType(current);
+      }
+    });
+    return template;
+  } else if (Array.isArray(body)) {
+    if (body.length) {
+      if (typeof body[0] === "object") {
+        return [createValidationTemplate(body[0])];
+      }
+      return [determineType(body[0])];
+    }
+  }
+}
+
 async function run() {
   console.time("asd");
   const res = await validateRequest(
@@ -276,7 +301,8 @@ async function run() {
                     start: "09:30",
                     end: "09:30"
                   }
-                ]
+                ],
+                asd: [0]
               }
             }
           },
@@ -293,3 +319,36 @@ async function run() {
 }
 
 run();
+const res = createValidationTemplate({
+  id: "cfbed6d9-b7af-43ae-aa9f-30c8a0370165",
+  start: "2020-04-30T18:00:00.000Z",
+  end: "2020-05-29T18:00:00.000Z",
+  title: "1.0",
+  description: null,
+  budgetedHours: 200,
+  project: "28b63787-b5b5-4348-bbf9-08f2bde60453",
+  parent: "18ee0222-ddc0-4879-931c-e4017fc7f72d",
+  dependsOn: null,
+  slotTemplate: {
+    employees: {
+      generic: {
+        "3": {
+          amount: 1,
+          start: "05:00",
+          end: "18:00",
+          breaks: [
+            {
+              start: "09:30",
+              end: "09:30"
+            }
+          ],
+          asd: [0]
+        }
+      }
+    },
+    resources: {}
+  }
+});
+if (res && res.slotTemplate) {
+  console.log(res.slotTemplate.employees.generic["3"]);
+}

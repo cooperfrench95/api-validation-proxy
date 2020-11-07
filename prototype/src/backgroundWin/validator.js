@@ -73,8 +73,8 @@ function determineType(i) {
     var potentials = Object.keys(typeCheckers).filter(function (i) { return i !== "lengthCheck"; });
     for (var n = 0; n < potentials.length; n += 1) {
         try {
-            var res = typeCheckers[potentials[n]](i);
-            if (res) {
+            var res_1 = typeCheckers[potentials[n]](i);
+            if (res_1) {
                 return potentials[n];
             }
         }
@@ -90,15 +90,9 @@ function determineType(i) {
 function recurseThroughObject(obj, template) {
     var invalidFields = [];
     if (Array.isArray(obj)) {
-        var desiredType_1 = determineType(template[0]);
-        obj.forEach(function (item, index) {
-            if (!typeCheckers[desiredType_1](item)) {
-                invalidFields.push({
-                    key: "" + index,
-                    reason: "Expected " + desiredType_1 + " but received " + determineType(item)
-                });
-            }
-            else if (desiredType_1 === "object" || desiredType_1 === "array") {
+        var desiredType_1 = template[0];
+        if (typeof desiredType_1 !== "string") {
+            obj.forEach(function (item, index) {
                 var fieldValidations = recurseThroughObject(item, template[0]);
                 fieldValidations.forEach(function (i) {
                     var trueKey = index + "." + i.key;
@@ -107,8 +101,18 @@ function recurseThroughObject(obj, template) {
                         reason: i.reason
                     });
                 });
-            }
-        });
+            });
+        }
+        else {
+            obj.forEach(function (item, index) {
+                if (!typeCheckers[desiredType_1](item)) {
+                    invalidFields.push({
+                        key: "" + index,
+                        reason: "Expected " + desiredType_1 + " but received " + determineType(item)
+                    });
+                }
+            });
+        }
     }
     else if (typeCheckers.object(obj)) {
         Object.keys(obj).forEach(function (key) {
@@ -256,6 +260,29 @@ function validateRequest(endpoint, body, headers, method, pathToValidation) {
         });
     });
 }
+function createValidationTemplate(body) {
+    if (typeCheckers.object(body)) {
+        var template_1 = {};
+        Object.keys(body).forEach(function (key) {
+            var current = body[key];
+            if (typeCheckers.object(current) || typeCheckers.array(current)) {
+                template_1[key] = createValidationTemplate(current);
+            }
+            else {
+                template_1[key] = determineType(current);
+            }
+        });
+        return template_1;
+    }
+    else if (Array.isArray(body)) {
+        if (body.length) {
+            if (typeof body[0] === "object") {
+                return [createValidationTemplate(body[0])];
+            }
+            return [determineType(body[0])];
+        }
+    }
+}
 function run() {
     return __awaiter(this, void 0, void 0, function () {
         var res;
@@ -286,7 +313,8 @@ function run() {
                                                         start: "09:30",
                                                         end: "09:30"
                                                     }
-                                                ]
+                                                ],
+                                                asd: [0]
                                             }
                                         }
                                     },
@@ -304,3 +332,36 @@ function run() {
     });
 }
 run();
+var res = createValidationTemplate({
+    id: "cfbed6d9-b7af-43ae-aa9f-30c8a0370165",
+    start: "2020-04-30T18:00:00.000Z",
+    end: "2020-05-29T18:00:00.000Z",
+    title: "1.0",
+    description: null,
+    budgetedHours: 200,
+    project: "28b63787-b5b5-4348-bbf9-08f2bde60453",
+    parent: "18ee0222-ddc0-4879-931c-e4017fc7f72d",
+    dependsOn: null,
+    slotTemplate: {
+        employees: {
+            generic: {
+                "3": {
+                    amount: 1,
+                    start: "05:00",
+                    end: "18:00",
+                    breaks: [
+                        {
+                            start: "09:30",
+                            end: "09:30"
+                        }
+                    ],
+                    asd: [0]
+                }
+            }
+        },
+        resources: {}
+    }
+});
+if (res && res.slotTemplate) {
+    console.log(res.slotTemplate.employees.generic["3"]);
+}
