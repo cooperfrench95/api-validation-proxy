@@ -40,13 +40,25 @@
                   v-if="!request.response"
                   indeterminate
                 />
+                <span
+                  v-else
+                  class="text--right pr-3"
+                  :style="
+                    `flex-grow: 0; ${
+                      request.response.statusCode < 400
+                        ? 'color: green'
+                        : 'color: red'
+                    }`"
+                >
+                  {{ request.response.statusCode }}
+                </span>
               </v-expansion-panel-header>
               <v-expansion-panel-content>
                 <v-row dense>
                   <v-col cols="6">
                     <v-card outlined>
                       <v-card-title class="primary darken-4">
-                        <span class="subtitle text-left">Headers</span>
+                        <span class="subtitle text-left">Request Headers</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
                         <v-simple-table>
@@ -89,10 +101,75 @@
                   <v-col cols="6">
                     <v-card outlined>
                       <v-card-title class="primary darken-4">
-                        <span class="subtitle text-left">Body</span>
+                        <span class="subtitle text-left">Request Body</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
                         {{ beautify(request.data) }}
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
+                <v-row dense v-if="request.response">
+                  <v-col cols="6">
+                    <v-card outlined>
+                      <v-card-title
+                        :class="
+                          (request.response.statusCode < 400
+                            ? 'green'
+                            : 'red') + ' darken-4'"
+                      >
+                        <span class="subtitle text-left">Response Headers</span>
+                      </v-card-title>
+                      <v-card-text class="cardTextClass">
+                        <v-simple-table>
+                          <thead>
+                            <tr>
+                              <th>Header</th>
+                              <th>Value</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr
+                              v-for="(header, key) in request.response.headers"
+                              :key="key"
+                            >
+                              <td class="text-left" valign="top">
+                                {{ key }}
+                              </td>
+                              <td
+                                class="text-left"
+                                style="max-width: 300px;"
+                                valign="top"
+                              >
+                                <div v-if="key === 'host'">
+                                  {{ header }}
+                                  <br />
+                                  <strong class="caption bold">{{
+                                    ` (forwarded to ${url})`
+                                  }}</strong>
+                                </div>
+                                <div v-else valign="top">
+                                  {{ header }}
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </v-simple-table>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                  <v-col cols="6">
+                    <v-card outlined>
+                      <v-card-title
+                        :class="
+                          (request.response.statusCode < 400
+                            ? 'green'
+                            : 'red') + ' darken-4'"
+                      >
+                        <span class="subtitle text-left">Response Body</span>
+                      </v-card-title>
+                      <v-card-text class="cardTextClass">
+                        {{ beautify(request.response.data) }}
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -135,11 +212,12 @@ export default class RequestView extends Vue {
   }
 
   pushResponseIntoQueue(incoming: IncomingResponse) {
-    const correspondingRequest = this.requests.find(i => {
+    const correspondingRequest = this.requests.find((i) => {
       return i.id === incoming.response.id;
     });
     if (correspondingRequest) {
       this.$set(correspondingRequest, "response", incoming.response);
+      this.connectionError = false;
     }
   }
 
