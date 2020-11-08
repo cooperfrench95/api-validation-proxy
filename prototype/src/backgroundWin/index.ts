@@ -31,7 +31,7 @@ app.use(cors(corsOptions));
 
 let actualURL = "http://localhost:3030/";
 
-let proxy = null;
+// let proxy = null;
 
 ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
   switch (data.event) {
@@ -39,13 +39,14 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
       console.log(data);
       actualURL = data.data.url;
       // Forward websockets
-      proxy = httpProxy.createServer({
-        target: "ws://" + actualURL,
-        ws: true
-      });
-      proxy.on("error", (e: Error) => {
-        console.log(e);
-      });
+      // proxy = httpProxy.createServer({
+      //   target: "ws://" + actualURL.replace('https://', '').replace('http://', ''),
+      //   ws: true
+      // });
+      // console.log('Websocket proxy', 'ws://' + actualURL, proxy)
+      // proxy.on("error", (e: Error) => {
+      //   console.log(e);
+      // });
       ipc.send("response", { url: actualURL, event: "change-backend-url" });
       break;
     case "get-backend-url":
