@@ -9,7 +9,6 @@ const typeCheckers = {
   object: (i: unknown) =>
     i !== null && !Array.isArray(i) && typeof i === "object",
   null: (i: unknown) => i === null,
-  undefined: (i: unknown) => i === undefined,
   lengthCheck: (i: string | unknown[], length: number, operator: string) => {
     switch (operator) {
       case "<":
