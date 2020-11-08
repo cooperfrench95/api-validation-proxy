@@ -1,24 +1,16 @@
+import { invalidField, validationAttemptResult, validationResult } from './../types';
 import validator from "validator";
 
-type invalidField = {
-  key: string;
-  reason: string;
-};
-
-interface validationResult {
-  valid: boolean;
-  invalidFields?: Array<invalidField>;
-}
-
 const typeCheckers = {
-  array: (i: any) => Array.isArray(i),
-  uuid: (i: any) => typeof i === "string" && validator.isUUID(i),
-  timestamp: (i: any) => typeof i === "string" && validator.isISO8601(i),
-  string: (i: any) => typeof i === "string",
-  object: (i: any) => i !== null && !Array.isArray(i) && typeof i === "object",
-  null: (i: any) => i === null,
-  undefined: (i: any) => i === undefined,
-  lengthCheck: (i: string | any[], length: number, operator: string) => {
+  array: (i: unknown) => Array.isArray(i),
+  uuid: (i: unknown) => typeof i === "string" && validator.isUUID(i),
+  timestamp: (i: unknown) => typeof i === "string" && validator.isISO8601(i),
+  string: (i: unknown) => typeof i === "string",
+  object: (i: unknown) =>
+    i !== null && !Array.isArray(i) && typeof i === "object",
+  null: (i: unknown) => i === null,
+  undefined: (i: unknown) => i === undefined,
+  lengthCheck: (i: string | unknown[], length: number, operator: string) => {
     switch (operator) {
       case "<":
         return i.length < length;
@@ -38,12 +30,12 @@ const typeCheckers = {
   locale: (i: string) => validator.isLocale(i),
   jwt: (i: string) => validator.isJWT(i),
   email: (i: string) => validator.isEmail(i),
-  number: (i: any) => typeof i === "number",
-  boolean: (i: any) => i === true || i === false
+  number: (i: unknown) => typeof i === "number",
+  boolean: (i: unknown) => i === true || i === false
 };
 
-function determineType(i: any) {
-  let type = "Unknown";
+function determineType(i: unknown) {
+  const type = "Unknown";
   const potentials = Object.keys(typeCheckers).filter(i => i !== "lengthCheck");
   for (let n = 0; n < potentials.length; n += 1) {
     try {
@@ -51,34 +43,57 @@ function determineType(i: any) {
       if (res) {
         return potentials[n];
       }
-    } catch (e) {
+    }
+    catch (e) {
       continue;
     }
   }
   return type;
 }
 
-// if array
-// determine first type inside array in template
-// check that each member of the array conforms with that
+function allPropertiesExist(obj: object, template: object, originalKey: string) {
+  console.log('key', originalKey, 'template', template, 'obj', obj)
+  const missingFields: invalidField[] = []
+  if (!obj && !originalKey.includes('?')) {
+    return [{
+      key: originalKey,
+      reason: 'Non-optional key is missing'
+    }]
+  }
+  if (typeof obj === 'string') {
+    return []
+  }
+  Object.keys(template).forEach(key => {
+    const isOptional = key.includes('?')
+    const exists = Object.hasOwnProperty.call(obj, key)
+    if (!exists && !isOptional) {
+      missingFields.push({
+        key: originalKey ? originalKey + '.' + key : key,
+        reason: 'Non-optional key is missing'
+      })
+    }
+  })
+  return missingFields
+}
 
-function recurseThroughObject(obj: object | any[], template: object | any[]) {
+function recurseThroughObject(
+  obj: object | unknown[],
+  template: object | unknown[]
+) {
   const invalidFields: invalidField[] = [];
   if (Array.isArray(obj)) {
-    const desiredType = template[0];
-    if (typeof desiredType !== "string") {
+    let desiredType = template[0];
+    if (typeof desiredType === "string") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       obj.forEach((item: any, index: number) => {
-        const fieldValidations = recurseThroughObject(item, template[0]);
-        fieldValidations.forEach(i => {
-          const trueKey = index + "." + i.key;
-          invalidFields.push({
-            key: trueKey,
-            reason: i.reason
-          });
-        });
-      });
-    } else {
-      obj.forEach((item: any, index: number) => {
+        // const fieldValidations = recurseThroughObject(item, template[0]);
+        // fieldValidations.forEach(i => {
+        //   const trueKey = index + "." + i.key;
+        //   invalidFields.push({
+        //     key: trueKey,
+        //     reason: i.reason
+        //   });
+        // });
         if (!typeCheckers[desiredType](item)) {
           invalidFields.push({
             key: `${index}`,
@@ -88,16 +103,42 @@ function recurseThroughObject(obj: object | any[], template: object | any[]) {
         }
       });
     }
-  } else if (typeCheckers.object(obj)) {
+    else {
+      desiredType = determineType(template[0])
+      if (desiredType === 'Unknown') {
+        throw new Error('Type could not be determined')
+      }
+      obj.forEach((item: any, index: number) => {
+        if (desiredType === 'object' || desiredType === 'array') {
+          const fieldValidations = recurseThroughObject(item, template[0]);
+          fieldValidations.forEach(i => {
+            const trueKey = index + "." + i.key;
+            invalidFields.push({
+              key: trueKey,
+              reason: i.reason
+            });
+          });
+        }
+        else if (!typeCheckers[desiredType](item)) {
+          invalidFields.push({
+            key: `${index}`,
+            reason:
+              "Expected " + desiredType + " but received " + determineType(item)
+          });
+        }
+      });
+    }
+  }
+  else if (typeCheckers.object(obj)) {
     Object.keys(obj).forEach(key => {
       let expectedValue = template[key];
       const receivedValue = obj[key];
-      const isOptional = template.hasOwnProperty(key + "?");
+      const isOptional = Object.hasOwnProperty.call(template, key + "?");
       if (isOptional && !expectedValue) {
         expectedValue = template[key + "?"];
       }
       const isPresentButIsFalsy =
-        !receivedValue && template.hasOwnProperty(key);
+        !receivedValue && Object.hasOwnProperty.call(template, key);
       if (expectedValue && (receivedValue || isPresentButIsFalsy)) {
         // If array, we need to check the data inside the array
         if (
@@ -158,7 +199,8 @@ function recurseThroughObject(obj: object | any[], template: object | any[]) {
                   Number(length),
                   operator
                 );
-              } else {
+              }
+              else {
                 valid = typeCheckers[singleType](receivedValue);
               }
               if (!valid) {
@@ -181,12 +223,8 @@ function recurseThroughObject(obj: object | any[], template: object | any[]) {
             });
           }
         }
-      } else if (!receivedValue && !isOptional) {
-        invalidFields.push({
-          key,
-          reason: "Property missing"
-        });
-      } else if (receivedValue && !expectedValue && !isOptional) {
+      }
+      else if (receivedValue && !expectedValue && !isOptional) {
         invalidFields.push({
           key,
           reason: "Unexpected property"
@@ -194,6 +232,8 @@ function recurseThroughObject(obj: object | any[], template: object | any[]) {
       }
     });
   }
+  const res = allPropertiesExist(obj, template, '')
+  res.forEach(i => invalidFields.push(i))
   return invalidFields;
 }
 
@@ -219,7 +259,8 @@ function checkObject(
         });
       });
     });
-  } else if (typeof obj === "object") {
+  }
+  else if (typeof obj === "object") {
     const results = recurseThroughObject(obj, template);
     results.forEach(i => {
       invalidFields.push(i);
@@ -232,39 +273,43 @@ function checkObject(
   };
 }
 
-async function validateRequest(
+async function validate(
   endpoint: string,
   body: object,
-  headers: object,
+  type: 'request' | 'response',
   method: string,
   pathToValidation: string
-): Promise<object> {
-  let template = null;
+): Promise<validationAttemptResult> {
   if (pathToValidation) {
     try {
-      template = await import(pathToValidation + endpoint + ".js");
-      return checkObject(body, template.request);
-    } catch (e) {
+      const template = __non_webpack_require__(
+        pathToValidation + endpoint + ".js"
+      );
+      return { couldBeValidated: true, result: checkObject(body, template[type][method]) };
+    }
+    catch (e) {
       console.log(e);
     }
   }
 
-  return {};
+  return { couldBeValidated: false };
 }
 
-function createValidationTemplate(body: object): any {
+function createValidationTemplate(body: object): object | string[] | object[] | undefined {
   if (typeCheckers.object(body)) {
-    let template = {};
+    const template = {};
     Object.keys(body).forEach(key => {
       const current = body[key];
       if (typeCheckers.object(current) || typeCheckers.array(current)) {
         template[key] = createValidationTemplate(current);
-      } else {
+      }
+      else {
         template[key] = determineType(current);
       }
     });
     return template;
-  } else if (Array.isArray(body)) {
+  }
+  else if (Array.isArray(body)) {
     if (body.length) {
       if (typeof body[0] === "object") {
         return [createValidationTemplate(body[0])];
@@ -272,83 +317,12 @@ function createValidationTemplate(body: object): any {
       return [determineType(body[0])];
     }
   }
+  return undefined
 }
 
-async function run() {
-  console.time("asd");
-  const res = await validateRequest(
-    "asd",
-    [
-      {
-        id: "cfbed6d9-b7af-43ae-aa9f-30c8a0370165",
-        start: "2020-04-30T18:00:00.000Z",
-        end: "2020-05-29T18:00:00.000Z",
-        title: "1.0",
-        description: null,
-        budgetedHours: 200,
-        project: "28b63787-b5b5-4348-bbf9-08f2bde60453",
-        parent: "18ee0222-ddc0-4879-931c-e4017fc7f72d",
-        dependsOn: null,
-        slotTemplate: {
-          employees: {
-            generic: {
-              "3": {
-                amount: 1,
-                start: "05:00",
-                end: "18:00",
-                breaks: [
-                  {
-                    start: "09:30",
-                    end: "09:30"
-                  }
-                ],
-                asd: [0]
-              }
-            }
-          },
-          resources: {}
-        }
-      }
-    ],
-    {},
-    "POST",
-    "/home/cooper/Documents/ecu project/prototype/exampleValidations/"
-  );
-  console.timeEnd("asd");
-  console.log(res);
-}
+export { validate, createValidationTemplate };
 
-run();
-const res = createValidationTemplate({
-  id: "cfbed6d9-b7af-43ae-aa9f-30c8a0370165",
-  start: "2020-04-30T18:00:00.000Z",
-  end: "2020-05-29T18:00:00.000Z",
-  title: "1.0",
-  description: null,
-  budgetedHours: 200,
-  project: "28b63787-b5b5-4348-bbf9-08f2bde60453",
-  parent: "18ee0222-ddc0-4879-931c-e4017fc7f72d",
-  dependsOn: null,
-  slotTemplate: {
-    employees: {
-      generic: {
-        "3": {
-          amount: 1,
-          start: "05:00",
-          end: "18:00",
-          breaks: [
-            {
-              start: "09:30",
-              end: "09:30"
-            }
-          ],
-          asd: [0]
-        }
-      }
-    },
-    resources: {}
-  }
-});
-if (res && res.slotTemplate) {
-  console.log(res.slotTemplate.employees.generic["3"]);
-}
+// TODOs
+// // * Hook up validator to the rest of the application
+// * Implement validation recorder using above createValidationTemplate function
+// * Implement views to fine tune validation, add user-defined functions to templates

@@ -1,11 +1,13 @@
-import { Request, IncomingRequest, IncomingResponse } from "./../types";
-import express, { request } from "express";
+import { IncomingRequest, IncomingResponse } from "./../types";
+import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import axios, { AxiosRequestConfig } from "axios";
 import { ipcRenderer as ipc } from "electron";
 import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
+import { validate } from "./validator";
+import httpProxy from "http-proxy";
 
 // Axios defaults to XHR in the browser (which electron technically is) so we then can't set headers like origin and host. So we override it to the node one here - it's not a security issue in this use case
 const safeAxios = axios.create({
@@ -27,13 +29,23 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors(corsOptions));
 
-let actualURL = "http://localhost:3030";
+let actualURL = "http://localhost:3030/";
+
+let proxy = null;
 
 ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
   switch (data.event) {
     case "change-backend-url":
       console.log(data);
       actualURL = data.data.url;
+      // Forward websockets
+      proxy = httpProxy.createServer({
+        target: "ws://" + actualURL,
+        ws: true
+      });
+      proxy.on("error", (e: Error) => {
+        console.log(e);
+      });
       ipc.send("response", { url: actualURL, event: "change-backend-url" });
       break;
     case "get-backend-url":
@@ -59,17 +71,21 @@ app.all("*", async (req, res) => {
   let target = actualURL;
   let endpoint = "/";
   let additionalPaths = "";
+  console.log("params", req.params);
   if (req.params) {
     target = target.substr(0, target.length - 1);
     console.log(target);
     const path: string[] = req.params[0].split("/");
-    path.splice(0);
+    path.splice(0, 1);
+    console.log("here", path);
     // Add the path e.g. /employees/2/username to the target url
     target += req.params[0];
     for (let i = 0; i < path.length; i += 1) {
+      console.log("這裡", path[i]);
       if (i === 0) {
         endpoint = path[i];
-      } else {
+      }
+      else {
         additionalPaths += `/${path[i]}`;
       }
     }
@@ -114,6 +130,22 @@ app.all("*", async (req, res) => {
 
   try {
     // TODO Validate incoming request here
+    let isValid = true
+    let invalidFields
+    const validationResult = await validate(
+      endpoint,
+      req.body,
+      'request',
+      req.method,
+      "/home/cooper/Documents/ecu project/prototype/exampleValidations/"
+    );
+
+    if (validationResult.couldBeValidated) {
+      if (validationResult.result && !validationResult.result.valid) {
+        isValid = false
+        invalidFields = validationResult.result.invalidFields
+      }
+    }
 
     const requestForUIThread: IncomingRequest = {
       event: "new-request",
@@ -122,17 +154,21 @@ app.all("*", async (req, res) => {
         headers: req.headers,
         data: req.body,
         method: req.method,
-        isValid: true,
+        isValid,
         origin: req.hostname,
         destination: target,
         endpoint,
         params: req.query,
-        timestamp: moment().valueOf()
+        timestamp: moment().valueOf(),
+        invalidFields: invalidFields
       }
     };
 
     // Let the UI know a request occurred
     ipc.send(SEND_TO_UI_THREAD, requestForUIThread);
+
+    isValid = true
+    invalidFields = []
 
     // Send the request through to the target server
     const response = await safeAxios.request({
@@ -143,9 +179,20 @@ app.all("*", async (req, res) => {
       params: req.query
     });
 
-    console.log(response);
+    const responseValidation = await validate(
+      endpoint,
+      response.data,
+      'response',
+      req.method,
+      "/home/cooper/Documents/ecu project/prototype/exampleValidations/"
+    )
 
-    // TODO Validate incoming response here
+    if (responseValidation.couldBeValidated) {
+      if (responseValidation.result && !responseValidation.result.valid) {
+        isValid = false
+        invalidFields = responseValidation.result.invalidFields
+      }
+    }
 
     const responseForUIThread: IncomingResponse = {
       event: "new-response",
@@ -156,7 +203,8 @@ app.all("*", async (req, res) => {
         statusCode: response.status,
         statusText: response.statusText,
         data: response.data,
-        isValid: true,
+        isValid,
+        invalidFields,
         responseTime: moment().diff(
           moment(requestForUIThread.request.timestamp),
           "ms"
@@ -166,8 +214,15 @@ app.all("*", async (req, res) => {
     // Let the UI know a response occurred
     ipc.send(SEND_TO_UI_THREAD, responseForUIThread);
 
-    // Make our response to the client the same as the response we received from the server
+    // If either request or response failed validation, create system notification
+    if (!responseForUIThread.response.isValid || !requestForUIThread.request.isValid) {
+      ipc.send('validation-failure', {
+        id: uniqueIdentifier,
+        endpoint,
+      })
+    }
 
+    // Make our response to the client the same as the response we received from the server
     // Headers
     Object.keys(response.headers).forEach(key => {
       res.set(key, response.headers[key]);
@@ -178,7 +233,8 @@ app.all("*", async (req, res) => {
 
     // Body (This sends the response)
     res.json(response.data);
-  } catch (e) {
+  }
+  catch (e) {
     console.error(e);
     res.status(500);
     if (e.code === "ECONNREFUSED") {

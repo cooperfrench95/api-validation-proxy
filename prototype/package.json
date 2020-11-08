@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
+    "serve": "vue-cli-service serve --port 8081",
     "build": "vue-cli-service build",
     "test:e2e": "vue-cli-service test:e2e",
     "lint": "vue-cli-service lint",
     "electron:build": "vue-cli-service electron:build",
-    "electron:serve": "vue-cli-service electron:serve",
+    "electron:serve": "vue-cli-service electron:serve --port 8081",
     "postinstall": "electron-builder install-app-deps",
     "postuninstall": "electron-builder install-app-deps"
   },
@@ -26,6 +26,7 @@
     "cors": "^2.8.5",
     "electron-unhandled": "^3.0.2",
     "express": "^4.17.1",
+    "node-http-proxy": "^0.2.3",
     "roboto-fontface": "*",
     "uuid": "^8.3.1",
     "validator": "^13.1.17",

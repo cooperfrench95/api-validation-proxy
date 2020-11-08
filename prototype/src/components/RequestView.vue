@@ -25,10 +25,11 @@
         <v-col cols="12">
           <v-expansion-panels>
             <v-expansion-panel
-              v-for="(request, index) in requests"
-              :key="index"
+              v-for="(request) in requests"
+              :ref="request.id"
+              :key="request.id"
             >
-              <v-expansion-panel-header>
+              <v-expansion-panel-header :class="request.isValid ? '' : 'red lighten-1'">
                 <span style="flex-grow: 1">
                   {{ request.method.toUpperCase() }} - {{ request.destination }}
                 </span>
@@ -55,6 +56,29 @@
               </v-expansion-panel-header>
               <v-expansion-panel-content>
                 <v-row dense>
+                  <v-col v-if="!request.isValid" cols="12">
+                    <v-card outlined>
+                      <v-card-title class="red lighten-1">
+                        Request validation failures
+                      </v-card-title>
+                      <v-card-text class="cardTextClass">
+                        <v-simple-table>
+                          <thead>
+                            <tr>
+                              <th>Field</th>
+                              <th>Issue</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="issue in request.invalidFields" :key="issue.key">
+                              <td>{{ issue.key }}</td>
+                              <td>{{ issue.reason }}</td>
+                            </tr>
+                          </tbody>
+                        </v-simple-table>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
                   <v-col cols="6">
                     <v-card outlined>
                       <v-card-title class="primary darken-4">
@@ -110,6 +134,29 @@
                   </v-col>
                 </v-row>
                 <v-row dense v-if="request.response">
+                   <v-col v-if="!request.response.isValid" cols="12">
+                    <v-card outlined>
+                      <v-card-title class="red lighten-1">
+                        Request validation failures
+                      </v-card-title>
+                      <v-card-text class="cardTextClass">
+                        <v-simple-table>
+                          <thead>
+                            <tr>
+                              <th>Field</th>
+                              <th>Issue</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="issue in request.response.invalidFields" :key="issue.key">
+                              <td>{{ issue.key }}</td>
+                              <td>{{ issue.reason }}</td>
+                            </tr>
+                          </tbody>
+                        </v-simple-table>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
                   <v-col cols="6">
                     <v-card outlined>
                       <v-card-title
@@ -187,13 +234,22 @@
 import moment from "moment";
 import { Component, Vue } from "vue-property-decorator";
 import { IPCHandler } from "../IPCHandler";
-import { IncomingRequest, IncomingResponse, Request } from "../types";
+import {
+  IncomingRequest,
+  IncomingResponse,
+  Request,
+  ViewValidationFailureEvent,
+} from "../types";
 import { Getter } from "vuex-class";
 
 @Component
 export default class RequestView extends Vue {
   @Getter("handler") handler!: IPCHandler;
   @Getter("url") url!: string;
+
+  $refs!: {
+    input: HTMLElement;
+  };
 
   requests: Request[] = [];
   connectionError = false;
@@ -205,6 +261,15 @@ export default class RequestView extends Vue {
     this.handler.on("new-request", this.pushRequestIntoQueue);
     this.handler.on("new-response", this.pushResponseIntoQueue);
     this.handler.on("backend-down", this.backendDown);
+    this.handler.on("view-validation-failure", this.viewValidationFailure);
+  }
+
+  viewValidationFailure(event: ViewValidationFailureEvent) {
+    const { id } = event;
+    if (this.$refs[id]) {
+      console.log(this.$refs[id], "ref");
+      this.$refs[id][0].$el.scrollIntoView();
+    }
   }
 
   backendDown() {
@@ -222,6 +287,7 @@ export default class RequestView extends Vue {
   }
 
   pushRequestIntoQueue(incoming: IncomingRequest) {
+    console.log(incoming.request.invalidFields);
     this.requests.unshift(incoming.request);
   }
 

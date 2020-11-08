@@ -1,6 +1,6 @@
 module.exports = {
-  request: [
-    {
+  request: {
+    POST: {
       id: "uuid",
       start: "timestamp",
       end: "timestamp",
@@ -18,10 +18,7 @@ module.exports = {
               start: "string",
               end: "string",
               "breaks?": [
-                {
-                  start: "string",
-                  end: "string"
-                }
+                "number"
               ]
             }
           }
@@ -29,5 +26,5 @@ module.exports = {
         resources: {}
       }
     }
-  ]
+  }
 };

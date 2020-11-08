@@ -1,13 +1,13 @@
-"use strict";
+import { validationAttemptResult, ValidationNotification } from './types';
 
-import { app, protocol, BrowserWindow } from "electron";
+import { app, protocol, BrowserWindow, ipcMain as ipc, Notification, Event } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
-const isDevelopment = process.env.NODE_ENV !== "production";
 
 import unhandled from "electron-unhandled";
-import { ipcMain as ipc, dialog } from "electron";
-import fs from "fs";
+"use strict";
+
+const isDevelopment = process.env.NODE_ENV !== "production";
 
 // https://github.com/sindresorhus/electron-unhandled
 // Can open a dialog with a report button
@@ -54,7 +54,8 @@ function createWindow() {
       win.webContents.openDevTools();
       backgroundWin.webContents.openDevTools();
     }
-  } else {
+  }
+  else {
     createProtocol("app");
     // Load the index.html when not in development
     win.loadURL("app://./index.html");
@@ -85,6 +86,32 @@ function createWindow() {
     if (win) win.webContents.send("response", data);
     else throw new Error("Win is null on ipcMain response");
   });
+
+  ipc.on('validation-failure', (event, data: ValidationNotification) => {
+    console.log(event, data)
+    if (win) {
+      // System notification
+      const notification = new Notification({
+        title: 'Validation error on ' + data.endpoint,
+        body: 'Click for details'
+      })
+      notification.on('click', () => {
+        if (win) {
+          win.show()
+          win.webContents.send('response', {
+            event: 'view-validation-failure',
+            id: data.id
+          })
+        }
+      })
+      notification.show()
+    }
+  })
+}
+
+// Allow notifications on windows, also requires the user puts the app in the start menu
+if (process.platform === 'win32') {
+  app.setAppUserModelId(process.execPath)
 }
 
 // Quit when all windows are closed.
@@ -112,7 +139,8 @@ app.on("ready", async () => {
     // Install Vue Devtools
     try {
       await installExtension(VUEJS_DEVTOOLS);
-    } catch (e) {
+    }
+    catch (e) {
       console.error("Vue Devtools failed to install:", e.toString());
     }
   }
@@ -127,7 +155,8 @@ if (isDevelopment) {
         app.quit();
       }
     });
-  } else {
+  }
+  else {
     process.on("SIGTERM", () => {
       app.quit();
     });

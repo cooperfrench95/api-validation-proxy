@@ -4,7 +4,7 @@ export interface Request {
   method: string;
   data: object;
   isValid: boolean;
-  invalidFields?: object;
+  invalidFields?: invalidField[];
   origin: string;
   destination: string;
   endpoint: string;
@@ -21,7 +21,7 @@ export interface Response {
   statusText: string;
   data: object;
   isValid: boolean;
-  invalidFields?: object;
+  invalidFields?: invalidField[];
   responseTime: number;
 }
 
@@ -33,4 +33,35 @@ export interface IncomingRequest {
 export interface IncomingResponse {
   event: "new-response";
   response: Response;
+}
+
+export type invalidField = {
+  key: string;
+  reason: string;
+};
+
+export type validationResult = {
+  valid: boolean;
+  invalidFields?: Array<invalidField>;
+};
+
+export type validationAttemptResult = {
+  couldBeValidated: boolean;
+  result?: validationResult;
+}
+
+export interface ValidationNotification {
+  id: string;
+  endpoint: string;
+  problems: validationResult[];
+}
+
+export interface ValidationFailureEvent {
+  event: 'validation-failure';
+  id: string;
+}
+
+export interface ViewValidationFailureEvent {
+  event: 'view-validation-failure';
+  id: string;
 }
