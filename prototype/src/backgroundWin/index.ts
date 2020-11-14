@@ -1,4 +1,4 @@
-import { IncomingRequest, IncomingResponse } from "./../types";
+import { IncomingRequest, IncomingResponse, RecordingResult } from "./../types";
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -6,7 +6,7 @@ import axios, { AxiosRequestConfig } from "axios";
 import { ipcRenderer as ipc } from "electron";
 import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
-import { validate } from "./validator";
+import { createValidationTemplate, validate } from "./validator";
 import httpProxy from "http-proxy";
 
 // Axios defaults to XHR in the browser (which electron technically is) so we then can't set headers like origin and host. So we override it to the node one here - it's not a security issue in this use case
@@ -30,6 +30,9 @@ app.use(bodyParser.json());
 app.use(cors(corsOptions));
 
 let actualURL = "http://localhost:3030/";
+let isRecording = false
+let recordingEndpoint = ''
+let recordingMethod = ''
 
 // let proxy = null;
 
@@ -52,6 +55,15 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
     case "get-backend-url":
       ipc.send("response", { url: actualURL, event: "get-backend-url" });
       break;
+    case "record-endpoint":
+      isRecording = true
+      recordingMethod = data.data.method
+      recordingEndpoint = data.data.endpoint.substr(1, data.data.endpoint.length - 1)
+      ipc.send('response', {
+        success: true,
+        event: 'record-endpoint'
+      })
+      break
     default:
       break;
   }
@@ -92,6 +104,11 @@ app.all("*", async (req, res) => {
     }
   }
 
+  let doNotValidate = false
+  if (isRecording && endpoint === recordingEndpoint && recordingMethod === req.method) {
+    doNotValidate = true
+  }
+
   let method: AxiosRequestConfig["method"];
 
   switch (req.method ? req.method.toLowerCase() : null) {
@@ -130,110 +147,148 @@ app.all("*", async (req, res) => {
   }
 
   try {
-    // TODO Validate incoming request here
-    let isValid = true
-    let invalidFields
-    const validationResult = await validate(
-      endpoint,
-      req.body,
-      'request',
-      req.method,
-      "/home/cooper/Documents/ecu project/prototype/exampleValidations/"
-    );
-
-    if (validationResult.couldBeValidated) {
-      if (validationResult.result && !validationResult.result.valid) {
-        isValid = false
-        invalidFields = validationResult.result.invalidFields
-      }
-    }
-
-    const requestForUIThread: IncomingRequest = {
-      event: "new-request",
-      request: {
-        id: uniqueIdentifier,
-        headers: req.headers,
+    if (doNotValidate) {
+      // Send the request through to the target server
+      const response = await safeAxios.request({
+        method: method,
+        url: target,
         data: req.body,
-        method: req.method,
-        isValid,
-        origin: req.hostname,
-        destination: target,
-        endpoint,
-        params: req.query,
-        timestamp: moment().valueOf(),
-        invalidFields: invalidFields
+        headers: req.headers,
+        params: req.query
+      });
+      const reqValidationTemplate = await createValidationTemplate(req.body)
+      const resValidationTemplate = await createValidationTemplate(response.data)
+
+      const recordingResult: RecordingResult = {
+        event: 'recording',
+        requestTemplate: reqValidationTemplate,
+        responseTemplate: resValidationTemplate
       }
-    };
 
-    // Let the UI know a request occurred
-    ipc.send(SEND_TO_UI_THREAD, requestForUIThread);
+      ipc.send(SEND_TO_UI_THREAD, recordingResult)
 
-    isValid = true
-    invalidFields = []
+      isRecording = false
+      recordingEndpoint = ''
+      recordingMethod = ''
 
-    // Send the request through to the target server
-    const response = await safeAxios.request({
-      method: method,
-      url: target,
-      data: req.body,
-      headers: req.headers,
-      params: req.query
-    });
+      // Make our response to the client the same as the response we received from the server
+      // Headers
+      Object.keys(response.headers).forEach(key => {
+        res.set(key, response.headers[key]);
+      });
 
-    const responseValidation = await validate(
-      endpoint,
-      response.data,
-      'response',
-      req.method,
-      "/home/cooper/Documents/ecu project/prototype/exampleValidations/"
-    )
+      // Status code
+      res.status(response.status);
 
-    if (responseValidation.couldBeValidated) {
-      if (responseValidation.result && !responseValidation.result.valid) {
-        isValid = false
-        invalidFields = responseValidation.result.invalidFields
-      }
+      // Body (This sends the response)
+      res.json(response.data);
     }
-
-    const responseForUIThread: IncomingResponse = {
-      event: "new-response",
-      response: {
-        id: uniqueIdentifier,
-        headers: response.headers,
-        method: req.method,
-        statusCode: response.status,
-        statusText: response.statusText,
-        data: response.data,
-        isValid,
-        invalidFields,
-        responseTime: moment().diff(
-          moment(requestForUIThread.request.timestamp),
-          "ms"
-        )
-      }
-    };
-    // Let the UI know a response occurred
-    ipc.send(SEND_TO_UI_THREAD, responseForUIThread);
-
-    // If either request or response failed validation, create system notification
-    if (!responseForUIThread.response.isValid || !requestForUIThread.request.isValid) {
-      ipc.send('validation-failure', {
-        id: uniqueIdentifier,
+    else {
+      // Validate incoming request
+      let isValid = true
+      let invalidFields
+      const validationResult = await validate(
         endpoint,
-      })
+        req.body,
+        'request',
+        req.method,
+        "/home/cooper/Documents/ecu project/prototype/exampleValidations/"
+      );
+
+      if (validationResult.couldBeValidated) {
+        if (validationResult.result && !validationResult.result.valid) {
+          isValid = false
+          invalidFields = validationResult.result.invalidFields
+        }
+      }
+
+      const requestForUIThread: IncomingRequest = {
+        event: "new-request",
+        request: {
+          id: uniqueIdentifier,
+          headers: req.headers,
+          data: req.body,
+          method: req.method,
+          isValid,
+          origin: req.hostname,
+          destination: target,
+          endpoint,
+          params: req.query,
+          timestamp: moment().valueOf(),
+          invalidFields: invalidFields
+        }
+      };
+
+      // Let the UI know a request occurred
+      ipc.send(SEND_TO_UI_THREAD, requestForUIThread);
+
+      isValid = true
+      invalidFields = []
+
+      // Send the request through to the target server
+      const response = await safeAxios.request({
+        method: method,
+        url: target,
+        data: req.body,
+        headers: req.headers,
+        params: req.query
+      });
+
+      const responseValidation = await validate(
+        endpoint,
+        response.data,
+        'response',
+        req.method,
+        "/home/cooper/Documents/ecu project/prototype/exampleValidations/"
+      )
+
+      if (responseValidation.couldBeValidated) {
+        if (responseValidation.result && !responseValidation.result.valid) {
+          isValid = false
+          invalidFields = responseValidation.result.invalidFields
+        }
+      }
+
+      const responseForUIThread: IncomingResponse = {
+        event: "new-response",
+        response: {
+          id: uniqueIdentifier,
+          headers: response.headers,
+          method: req.method,
+          statusCode: response.status,
+          statusText: response.statusText,
+          data: response.data,
+          isValid,
+          invalidFields,
+          responseTime: moment().diff(
+            moment(requestForUIThread.request.timestamp),
+            "ms"
+          )
+        }
+      };
+      // Let the UI know a response occurred
+      ipc.send(SEND_TO_UI_THREAD, responseForUIThread);
+
+      // If either request or response failed validation, create system notification
+      if (!responseForUIThread.response.isValid || !requestForUIThread.request.isValid) {
+        ipc.send('validation-failure', {
+          id: uniqueIdentifier,
+          endpoint,
+        })
+      }
+
+      // Make our response to the client the same as the response we received from the server
+      // Headers
+      Object.keys(response.headers).forEach(key => {
+        res.set(key, response.headers[key]);
+      });
+
+      // Status code
+      res.status(response.status);
+
+      // Body (This sends the response)
+      res.json(response.data);
     }
-
-    // Make our response to the client the same as the response we received from the server
-    // Headers
-    Object.keys(response.headers).forEach(key => {
-      res.set(key, response.headers[key]);
-    });
-
-    // Status code
-    res.status(response.status);
-
-    // Body (This sends the response)
-    res.json(response.data);
   }
   catch (e) {
     console.error(e);

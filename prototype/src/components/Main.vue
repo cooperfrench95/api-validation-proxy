@@ -46,15 +46,15 @@
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
 import { IPCHandler } from "../IPCHandler";
-import { Action, Getter } from 'vuex-class';
-import type { ActionMethod } from 'vuex'
+import { Action, Getter } from "vuex-class";
+import type { ActionMethod } from "vuex";
 
 @Component
 export default class Main extends Vue {
   url = "";
 
-  @Getter('handler') handler!: IPCHandler
-  @Action('setURL') setURL!: ActionMethod
+  @Getter("handler") handler!: IPCHandler;
+  @Action("setURL") setURL!: ActionMethod;
 
   mounted() {
     this.getURL();
@@ -69,24 +69,24 @@ export default class Main extends Vue {
           )) ||
         "Invalid URL"
       );
-    }
+    },
   ];
 
   async getURL() {
     const response = await this.handler.send("get-backend-url");
     if (response.url) {
       this.url = response.url;
-      this.setURL(this.url)
+      this.setURL(this.url);
     }
   }
 
   async confirmURL() {
     const response = await this.handler.send("change-backend-url", {
       event: "change-backend-url",
-      url: this.url
+      url: this.url,
     });
     if (response.url === this.url && this.valid) {
-      this.setURL(this.url)
+      this.setURL(this.url);
       this.$router.push("/requests");
     }
   }

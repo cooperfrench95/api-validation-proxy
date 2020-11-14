@@ -65,3 +65,21 @@ export interface ViewValidationFailureEvent {
   event: 'view-validation-failure';
   id: string;
 }
+
+export interface RecordingResult {
+  event: "recording";
+  requestTemplate: object | string[] | object[] | null;
+  responseTemplate: object | string[] | object[] | null;
+}
+
+export interface LineDescription {
+  type?: string;
+  optional: boolean;
+  display: string;
+  displayAfter?: string;
+}
+
+export interface ConversionResult {
+  asObject: object;
+  asString: string;
+}

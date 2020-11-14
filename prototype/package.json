@@ -48,6 +48,7 @@
     "@vue/cli-plugin-typescript": "^4.5.0",
     "@vue/cli-plugin-vuex": "^4.5.0",
     "@vue/cli-service": "^4.5.0",
+    "eslint-plugin-vue-a11y": "^0.0.31",
     "@vue/eslint-config-standard": "^5.1.2",
     "@vue/eslint-config-typescript": "^5.0.2",
     "electron": "^9.0.0",

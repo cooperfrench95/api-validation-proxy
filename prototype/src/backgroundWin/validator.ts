@@ -294,7 +294,7 @@ async function validate(
   return { couldBeValidated: false };
 }
 
-function createValidationTemplate(body: object): object | string[] | object[] | undefined {
+function createValidationTemplate(body: object): object | string[] | object[] | null {
   if (typeCheckers.object(body)) {
     const template = {};
     Object.keys(body).forEach(key => {
@@ -316,7 +316,7 @@ function createValidationTemplate(body: object): object | string[] | object[] | 
       return [determineType(body[0])];
     }
   }
-  return undefined
+  return null
 }
 
 export { validate, createValidationTemplate };
@@ -324,4 +324,10 @@ export { validate, createValidationTemplate };
 // TODOs
 // // * Hook up validator to the rest of the application
 // * Implement validation recorder using above createValidationTemplate function
+// * Click record button
+// * Enter endpoint name
+// * Make series of requests
+// * Review the resulting JSON
+// * Save the file
 // * Implement views to fine tune validation, add user-defined functions to templates
+// * What about recursive objects?

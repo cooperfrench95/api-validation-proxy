@@ -1,10 +1,11 @@
-import { validationAttemptResult, ValidationNotification } from './types';
+import { ValidationNotification } from './types';
 
-import { app, protocol, BrowserWindow, ipcMain as ipc, Notification, Event } from "electron";
+import { app, protocol, BrowserWindow, ipcMain as ipc, Notification } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 
 import unhandled from "electron-unhandled";
+// eslint-disable-next-line no-unused-expressions
 "use strict";
 
 const isDevelopment = process.env.NODE_ENV !== "production";

@@ -21,7 +21,11 @@
             Requests
           </h1>
         </v-col>
-        <v-col cols="3"></v-col>
+        <v-col cols="3" style="text-align: right">
+          <v-btn outlined color="primary" @click.stop="showRecorder = true">
+            Recorder
+          </v-btn>
+        </v-col>
         <v-col cols="12">
           <v-expansion-panels>
             <v-expansion-panel
@@ -226,6 +230,7 @@
           </v-expansion-panels>
         </v-col>
       </v-row>
+    <Recorder v-model="showRecorder" />
     </v-container>
   </v-app>
 </template>
@@ -241,8 +246,13 @@ import {
   ViewValidationFailureEvent,
 } from "../types";
 import { Getter } from "vuex-class";
+import Recorder from "./Recorder.vue";
 
-@Component
+@Component({
+  components: {
+    Recorder,
+  },
+})
 export default class RequestView extends Vue {
   @Getter("handler") handler!: IPCHandler;
   @Getter("url") url!: string;
@@ -253,11 +263,19 @@ export default class RequestView extends Vue {
 
   requests: Request[] = [];
   connectionError = false;
+  showRecorder = false;
 
   mounted() {
     if (!this.handler.isListening()) {
       this.handler.listen();
     }
+    this.handler.on("new-request", this.pushRequestIntoQueue);
+    this.handler.on("new-response", this.pushResponseIntoQueue);
+    this.handler.on("backend-down", this.backendDown);
+    this.handler.on("view-validation-failure", this.viewValidationFailure);
+  }
+
+  beforeDestroy() {
     this.handler.on("new-request", this.pushRequestIntoQueue);
     this.handler.on("new-response", this.pushResponseIntoQueue);
     this.handler.on("backend-down", this.backendDown);

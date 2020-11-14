@@ -3,10 +3,14 @@ module.exports = {
   env: {
     node: true
   },
+  plugins: [
+    "vue-a11y"
+  ],
   extends: [
     "plugin:vue/essential",
     "@vue/standard",
-    "@vue/typescript/recommended"
+    "@vue/typescript/recommended",
+    "plugin:vue-a11y/recommended"
   ],
   parserOptions: {
     ecmaVersion: 2020
