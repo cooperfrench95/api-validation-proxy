@@ -1,10 +1,11 @@
 <template>
   <v-app class="scroll-enabled">
+    <vue-announcer v-if="!announcerDead" />
     <v-container>
       <v-row dense align="center" justify="center">
         <v-col cols="12" v-if="connectionError">
           <v-subheader class="red">
-            <v-icon class="pr-2">
+            <v-icon class="pr-2" aria-label="Alert" aria-hidden="false">
               mdi-alert
             </v-icon>
             It appears your backend at
@@ -12,7 +13,7 @@
           </v-subheader>
         </v-col>
         <v-col cols="3" style="text-align: left">
-          <v-icon x-large @click.stop="$router.push('/')">
+          <v-icon x-large @click.stop="$router.push('/')" aria-label="Exit request view">
             mdi-arrow-left
           </v-icon>
         </v-col>
@@ -32,37 +33,47 @@
               v-for="(request) in requests"
               :ref="request.id"
               :key="request.id"
+              class="mb-1"
+              :style="`border: 1px solid ${request.isValid === true ? 'green' : request.isValid === false ? 'red' : 'white'}`"
             >
-              <v-expansion-panel-header :class="request.isValid ? '' : 'red lighten-1'">
-                <span style="flex-grow: 1">
-                  {{ request.method.toUpperCase() }} - {{ request.destination }}
-                </span>
-                <span class="text--right pr-3" style="flex-grow: 0">
-                  {{ getTimeSince(request.timestamp) }}
-                </span>
-                <v-progress-circular
-                  size="20"
-                  v-if="!request.response"
-                  indeterminate
-                />
-                <span
-                  v-else
-                  class="text--right pr-3"
-                  :style="
-                    `flex-grow: 0; ${
-                      request.response.statusCode < 400
-                        ? 'color: green'
-                        : 'color: red'
-                    }`"
-                >
-                  {{ request.response.statusCode }}
-                </span>
+              <v-expansion-panel-header color="black">
+                  <template v-slot:default="{ open }">
+                    <div style="display: flex" role="button" :aria-label="request.method + ' ' + request.destination + ' ' + getTimeSince(request.timestamp) + 'Status: ' + (request.response ? request.response.statusCode + ('Valid: ' + request.isValid) : 'Unknown')" :aria-expanded="open" aria-hidden="false">
+                      <span style="flex-grow: 1">
+                        {{ request.method.toUpperCase() }} - {{ request.destination }}
+                      </span>
+                      <span class="text--right pr-3" style="flex-grow: 0">
+                        {{ getTimeSince(request.timestamp) }}
+                      </span>
+                      <v-progress-circular
+                        size="20"
+                        v-if="!request.response"
+                        indeterminate
+                      />
+                      <span
+                        v-else
+                        class="text--right pr-3"
+                        :style="
+                          `flex-grow: 0; font-weight: 1000; ${
+                            request.response.statusCode < 400
+                              ? 'color: green'
+                              : 'color: red'
+                          }`"
+                      >
+                        {{ request.response.statusCode }}
+                      </span>
+
+                    </div>
+                  </template>
+                  <template v-slot:actions>
+                    <v-icon aria-hidden="false" role="button" aria-label="expand">$expand</v-icon>
+                  </template>
               </v-expansion-panel-header>
-              <v-expansion-panel-content>
+              <v-expansion-panel-content color="black">
                 <v-row dense>
                   <v-col v-if="!request.isValid" cols="12">
-                    <v-card outlined>
-                      <v-card-title class="red lighten-1">
+                    <v-card outlined tabindex="0">
+                      <v-card-title clickable="false" class="red darken-3">
                         Request validation failures
                       </v-card-title>
                       <v-card-text class="cardTextClass">
@@ -84,8 +95,8 @@
                     </v-card>
                   </v-col>
                   <v-col cols="6">
-                    <v-card outlined>
-                      <v-card-title class="primary darken-4">
+                    <v-card outlined tabindex="0">
+                      <v-card-title clickable="false" class="primary darken-4">
                         <span class="subtitle text-left">Request Headers</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
@@ -127,8 +138,8 @@
                     </v-card>
                   </v-col>
                   <v-col cols="6">
-                    <v-card outlined>
-                      <v-card-title class="primary darken-4">
+                    <v-card outlined tabindex="0">
+                      <v-card-title clickable="false" class="primary darken-4">
                         <span class="subtitle text-left">Request Body</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
@@ -139,9 +150,9 @@
                 </v-row>
                 <v-row dense v-if="request.response">
                    <v-col v-if="!request.response.isValid" cols="12">
-                    <v-card outlined>
-                      <v-card-title class="red lighten-1">
-                        Request validation failures
+                    <v-card outlined tabindex="0">
+                      <v-card-title clickable="false" class="red lighten-1">
+                        Response validation failures
                       </v-card-title>
                       <v-card-text class="cardTextClass">
                         <v-simple-table>
@@ -162,7 +173,7 @@
                     </v-card>
                   </v-col>
                   <v-col cols="6">
-                    <v-card outlined>
+                    <v-card outlined tabindex="0">
                       <v-card-title
                         :class="
                           (request.response.statusCode < 400
@@ -210,7 +221,7 @@
                     </v-card>
                   </v-col>
                   <v-col cols="6">
-                    <v-card outlined>
+                    <v-card outlined tabindex="0">
                       <v-card-title
                         :class="
                           (request.response.statusCode < 400
@@ -224,13 +235,16 @@
                       </v-card-text>
                     </v-card>
                   </v-col>
+                  <v-col cols="12">
+                        <small>(Only the first element in long array responses is parsed for performance reasons)</small>
+                  </v-col>
                 </v-row>
               </v-expansion-panel-content>
             </v-expansion-panel>
           </v-expansion-panels>
         </v-col>
       </v-row>
-    <Recorder v-model="showRecorder" />
+    <Recorder v-if="showRecorder" v-model="showRecorder" @announcement="announce" />
     </v-container>
   </v-app>
 </template>
@@ -264,11 +278,16 @@ export default class RequestView extends Vue {
   requests: Request[] = [];
   connectionError = false;
   showRecorder = false;
+  announcerDead = false;
 
   mounted() {
     if (!this.handler.isListening()) {
       this.handler.listen();
     }
+    this.$announcer.set('This is the requests view. It consists of all the incoming requests coming in to your backend URL from localhost. It will notify you when a request does not conform to your validation templates.')
+    setTimeout(() => {
+      this.announcerDead = true
+    }, 1000);
     this.handler.on("new-request", this.pushRequestIntoQueue);
     this.handler.on("new-response", this.pushResponseIntoQueue);
     this.handler.on("backend-down", this.backendDown);
@@ -315,6 +334,14 @@ export default class RequestView extends Vue {
 
   beautify(input: object): string {
     return JSON.stringify(input, null, 4);
+  }
+
+  announce(message: string) {
+    this.announcerDead = false
+    this.$announcer.set(message)
+    setTimeout(() => {
+      this.announcerDead = true
+    }, 5000);
   }
 }
 </script>

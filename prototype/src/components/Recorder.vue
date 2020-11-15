@@ -1,18 +1,21 @@
 <template>
-  <v-dialog v-model="show" width="800px">
-    <v-card width="800">
-      <v-card-title>
+  <v-dialog persistent v-model="show" width="800px">
+    <vue-announcer />
+    <v-card color="black" role="dialog" width="800">
+      <v-card-title aria-label="Dialog heading" role="heading" tabindex="0" >
         Generate validation for new endpoint
+        <v-spacer />
+        <v-icon @click.stop="show = false" role="button" aria-label="Close recorder dialog">mdi-close</v-icon>
       </v-card-title>
       <v-card-text>
         <v-row dense>
           <v-col cols="12">
-            <v-stepper class="elevation-0" v-model="step" vertical>
+            <v-stepper class="elevation-0 black" v-model="step" vertical>
               <v-stepper-step :complete="step > 1" step="1">
-                Enter details
+                <span :tabindex="step === 1 ? 0 : null">Enter details</span>
               </v-stepper-step>
               <v-stepper-content :step="1">
-                <v-col cols="12">
+                <v-col v-if="step === 1" cols="12">
                   <v-text-field
                     v-model="endpointName"
                     required
@@ -22,19 +25,22 @@
                   >
                   </v-text-field>
                 </v-col>
-                <v-col cols="12">
-                  <v-select
+                <v-col v-if="step === 1" cols="12">
+                  <v-autocomplete
                     v-model="method"
+                    eager
                     :items="methodOptions"
                     label="Method"
                   />
                 </v-col>
-                <v-col cols="12">
+                <v-col v-if="step === 1" cols="12">
                   <v-btn
                     color="primary"
                     :disabled="!validEndpointNameAndMethod"
+                    :aria-disabled="!validEndpointNameAndMethod"
                     @click.stop="record"
                     block
+                    outlined
                     :loading="recording"
                   >
                     Record
@@ -42,22 +48,22 @@
                 </v-col>
               </v-stepper-content>
               <v-stepper-step :complete="step > 2" step="2">
-                Review request template
+                <span :tabindex="step === 2 ? 0 : null">Review request template</span>
               </v-stepper-step>
               <v-stepper-content :step="2">
-                <v-row dense>
+                <v-row v-if="step === 2" dense>
                   <v-col cols="6">
-                    <v-subheader>
+                    <v-subheader tabindex="0">
                       Generated request template:
                     </v-subheader>
                   </v-col>
                   <v-spacer />
                   <v-col cols="1">
-                    <v-icon v-if="editMode === 'as json'" class="pt-4" @click.stop="showFormattingHelp = true">mdi-help-circle</v-icon>
+                    <v-icon v-if="editMode === 'as json'" aria-label="Formatting help" class="pt-4" @click.stop="showFormattingHelp = true">mdi-help-circle</v-icon>
                   </v-col>
                   <v-col cols="3">
-                    <v-select :items="['basic', 'as json']" label="Edit" v-model="editMode" @change="viewConverted" :disabled="!JSONRequestStringValid">
-                    </v-select>
+                    <v-autocomplete :items="['basic', 'as json']" label="Edit" v-model="editMode" @change="viewConverted" :disabled="!JSONRequestStringValid">
+                    </v-autocomplete>
                   </v-col>
                   <v-col cols="12">
                     <v-card-text v-if="editMode === 'basic'" class="cardTextClass">
@@ -66,9 +72,9 @@
                           <span>{{ line.display }}</span>
                         </p>
                         <p v-else>
-                          <span>{{ line.display }}</span>
-                          <span style="display: inline-flex; height: 20px;">
-                            <v-select style="max-width: 150px; " dense outlined v-if="typeOptions.includes(line.type)" v-model="line.type" :items="typeOptions"></v-select>
+                          <span tabindex="0">{{ line.display }}</span>
+                          <span :tabindex="typeOptions.includes(line.type) ? null : 0" style="display: inline-flex; height: 20px;">
+                            <v-autocomplete aria-label="Type" style="max-width: 150px; " dense outlined v-if="typeOptions.includes(line.type)" v-model="line.type" :items="typeOptions"></v-autocomplete>
                             <div v-else class="customTypeClass">{{ line.type }}</div>
                           </span>
                           <span style="display: inline-flex">
@@ -79,33 +85,33 @@
                       </div>
                     </v-card-text>
                     <v-card-text v-else >
-                      <v-textarea v-model="JSONRequestString" auto-grow :rules="[v => JSONRequestStringValid]" :style="(JSONRequestStringValid ? 'background-color:  rgba(17, 123, 17, 0.426)' : 'background-color: rgba(184, 16, 16, 0.419)') + '; '"/>
+                      <v-textarea role="textbox" aria-label="Edit your JSON here" v-model="JSONRequestString" auto-grow :rules="[v => JSONRequestStringValid]" :style="(JSONRequestStringValid ? 'background-color:  rgba(17, 123, 17, 0.426)' : 'background-color: rgba(184, 16, 16, 0.419)') + '; '"/>
                     </v-card-text>
                   </v-col>
                   <v-col cols="12">
-                    <v-btn :disabled="!JSONRequestStringValid" block color="primary" @click.stop="step += 1">
+                    <v-btn outlined :disabled="!JSONRequestStringValid" block color="primary" @click.stop="step += 1">
                       Next
                     </v-btn>
                   </v-col>
                 </v-row>
               </v-stepper-content>
               <v-stepper-step :complete="step > 3" step="3">
-                Review response template
+                <span :tabindex="step === 3 ? 0 : null">Review response template</span>
               </v-stepper-step>
               <v-stepper-content :step="3">
-                <v-row dense>
+              <v-row v-if="step === 3"  dense>
                   <v-col cols="6">
-                    <v-subheader>
+                    <v-subheader tabindex="0">
                       Generated response template:
                     </v-subheader>
                   </v-col>
                   <v-spacer />
                   <v-col cols="1">
-                    <v-icon v-if="editMode === 'as json'" class="pt-4" @click.stop="showFormattingHelp = true">mdi-help-circle</v-icon>
+                    <v-icon v-if="editMode === 'as json'" aria-label="Formatting help" class="pt-4" @click.stop="showFormattingHelp = true">mdi-help-circle</v-icon>
                   </v-col>
                   <v-col cols="3">
-                    <v-select :items="['basic', 'as json']" label="Edit" v-model="editMode" @change="viewConverted" :disabled="!JSONResponseStringValid">
-                    </v-select>
+                    <v-autocomplete :items="['basic', 'as json']" label="Edit" v-model="editMode" @change="viewConverted" :disabled="!JSONResponseStringValid">
+                    </v-autocomplete>
                   </v-col>
                   <v-col cols="12">
                     <v-card-text v-if="editMode === 'basic'" class="cardTextClass">
@@ -114,9 +120,9 @@
                           <span>{{ line.display }}</span>
                         </p>
                         <p v-else>
-                          <span>{{ line.display }}</span>
-                          <span style="display: inline-flex; height: 20px;">
-                            <v-select style="max-width: 150px; " dense outlined v-if="typeOptions.includes(line.type)" v-model="line.type" :items="typeOptions"></v-select>
+                          <span tabindex="0">{{ line.display }}</span>
+                          <span :tabindex="typeOptions.includes(line.type) ? null : 0" style="display: inline-flex; height: 20px;">
+                            <v-autocomplete aria-label="Type" style="max-width: 150px; " dense outlined v-if="typeOptions.includes(line.type)" v-model="line.type" :items="typeOptions"></v-autocomplete>
                             <div v-else class="customTypeClass">{{ line.type }}</div>
                           </span>
                           <span style="display: inline-flex">
@@ -127,11 +133,11 @@
                       </div>
                     </v-card-text>
                     <v-card-text v-else >
-                      <v-textarea v-model="JSONResponseString" auto-grow :rules="[v => JSONResponseStringValid]" :style="(JSONResponseStringValid ? 'background-color:  rgba(17, 123, 17, 0.426)' : 'background-color: rgba(184, 16, 16, 0.419)') + '; '"/>
+                      <v-textarea role="textbox" aria-label="Edit your JSON here"  v-model="JSONResponseString" auto-grow :rules="[v => JSONResponseStringValid]" :style="(JSONResponseStringValid ? 'background-color:  rgba(17, 123, 17, 0.426)' : 'background-color: rgba(184, 16, 16, 0.419)') + '; '"/>
                     </v-card-text>
                   </v-col>
                   <v-col cols="12">
-                    <v-btn :disabled="!JSONResponseStringValid" block color="primary" @click.stop="save">
+                    <v-btn outlined :disabled="!JSONResponseStringValid" block color="primary" @click.stop="save">
                       Save
                     </v-btn>
                   </v-col>
@@ -143,16 +149,16 @@
       </v-card-text>
     </v-card>
     <v-dialog v-if="showFormattingHelp" v-model="showFormattingHelp" width="600">
-      <v-card width="600">
-        <v-card-title>
+      <v-card role="dialog" width="600">
+        <v-card-title tabindex="0">
           Formatting help
         </v-card-title>
         <v-card-text>
           <v-row dense class="text-left">
-            <v-col cols="12">
+            <v-col tabindex="0" cols="12">
               The following denotes the formatting required when editing your validation template as JSON.
             </v-col>
-            <v-col cols="12">
+            <v-col tabindex="0" cols="12">
               <ul>
                 <li>Template must be valid JSON.</li>
                 <li>Key names cannot inherently contain question marks or colons. Adding a question mark to the end of a key denotes that it is optional, i.e. it may be undefined or not present on the object at all.</li>
@@ -181,7 +187,7 @@
           </v-row>
         </v-card-text>
         <v-card-actions>
-          <v-btn block color="primary" @click.stop="showFormattingHelp = false">
+          <v-btn outlined block color="primary" @click.stop="showFormattingHelp = false" aria-label="exit help dialog">
             Got it!
           </v-btn>
         </v-card-actions>
@@ -191,10 +197,10 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import { IPCHandler } from "../IPCHandler";
 import { Getter } from "vuex-class";
-import { ConversionResult, LineDescription, RecordingResult } from "@/types";
+import { ConversionResult, LineDescription, RecordingResult, SaveTemplateResult } from "@/types";
 
 @Component
 export default class Recorder extends Vue {
@@ -231,6 +237,25 @@ export default class Recorder extends Vue {
 
   mounted() {
     this.handler.on("recording", this.handleSuccessfulRecording);
+    this.handler.on("save-validation", this.handleSaveEvent);
+    interface KeyboardEvent {
+      keyCode: number;
+      ctrlKey: boolean;
+    }
+    const KeyPress = (e: KeyboardEvent) => {
+      // eslint-disable-next-line no-restricted-globals
+      const evtobj = e
+      if (evtobj.keyCode === 72 && evtobj.ctrlKey) {
+        this.showFormattingHelp = true
+      }
+    }
+
+    document.onkeydown = KeyPress
+  }
+
+  beforeDestroy() {
+    this.handler.off("recording", this.handleSuccessfulRecording);
+    this.handler.off("save-validation", this.handleSaveEvent);
   }
 
   get validEndpointNameAndMethod() {
@@ -251,6 +276,7 @@ export default class Recorder extends Vue {
 
   record() {
     this.recording = true;
+    this.$announcer.set(`Listening. Please send a ${this.method} request to ${this.endpointName}`)
     this.handler.send("record-endpoint", {
       endpoint: this.endpointName,
       method: this.method,
@@ -279,6 +305,7 @@ export default class Recorder extends Vue {
       this.JSONResponseString = responseConverted.asString;
       this.responseResult = data.responseTemplate;
       this.recording = false;
+      this.$announcer.set('Request received. Please edit your validation template for the request & response')
       this.step = 2;
     }
   }
@@ -506,6 +533,16 @@ export default class Recorder extends Vue {
     return valid;
   }
 
+  @Watch('JSONRequestStringValid')
+  onJSONRequestStringValidChange(val: boolean) {
+    if (!val) {
+      this.$announcer.set('Your JSON is invalid. Press ctrl+h to view the formatting help')
+    }
+    else {
+      this.$announcer.set('JSON valid')
+    }
+  }
+
   get JSONResponseStringValid() {
     let valid = false;
     try {
@@ -528,15 +565,34 @@ export default class Recorder extends Vue {
     return valid;
   }
 
+  @Watch('JSONResponseStringValid')
+  onJSONResponseStringValidChange(val: boolean) {
+    if (!val) {
+      this.$announcer.set('Your JSON is invalid. Press ctrl+h to view the formatting help')
+    }
+    else {
+      this.$announcer.set('JSON valid')
+    }
+  }
+
   async save() {
-    const res = await this.handler.send('save-validation', {
+    await this.handler.send('save-validation', {
       endpoint: this.endpointName,
       method: this.method,
       requestTemplate: this.JSONRequestString,
       responseTemplate: this.JSONResponseString
     })
-    console.log(res)
-    this.show = false
+  }
+
+  handleSaveEvent(e: SaveTemplateResult) {
+    if (e.success) {
+      this.$emit('announcement', 'Validation template saved. Dialog closed')
+      this.show = false
+    }
+    else {
+      this.$emit('announcement', 'Validation template could not be saved. Dialog closed')
+      this.show = false
+    }
   }
 
   convertBackToObject(input: LineDescription[]): ConversionResult {

@@ -4,13 +4,13 @@ module.exports = {
     node: true
   },
   plugins: [
-    "vue-a11y"
+    "vuejs-accessibility"
   ],
   extends: [
     "plugin:vue/essential",
     "@vue/standard",
     "@vue/typescript/recommended",
-    "plugin:vue-a11y/recommended"
+    "plugin:vuejs-accessibility/recommended"
   ],
   parserOptions: {
     ecmaVersion: 2020

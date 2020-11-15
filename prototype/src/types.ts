@@ -90,3 +90,8 @@ export interface SaveTemplateCommand {
   requestTemplate: object;
   responseTemplate: object;
 }
+
+export interface SaveTemplateResult {
+  event: 'save-validation';
+  success: boolean;
+}

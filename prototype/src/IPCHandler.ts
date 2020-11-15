@@ -33,7 +33,7 @@ export class IPCHandler extends EventEmitter {
     return this.listening;
   }
 
-  public send(event: string, data?: any): Promise<IPCHandlerResponse<string>> {
+  public send(event: string, data?: any): Promise<IPCHandlerResponse<string|object>> {
     if (!this.listening) {
       this.listen();
     }

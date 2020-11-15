@@ -1,5 +1,6 @@
 <template>
   <v-app>
+    <vue-announcer />
     <v-container>
       <v-row dense align="center" justify="center">
         <v-card width="400" class="mt-10">
@@ -42,6 +43,7 @@
                   color="primary"
                   @click.stop="confirmURL"
                   :disabled="!valid"
+                  :aria-disabled="!valid"
                 >
                   Continue
                 </v-btn>
@@ -55,7 +57,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+import { Component, Vue, Watch } from "vue-property-decorator";
 import { IPCHandler } from "../IPCHandler";
 import { Action, Getter } from "vuex-class";
 import type { ActionMethod } from "vuex";
@@ -71,6 +73,9 @@ export default class Main extends Vue {
 
   mounted() {
     this.getURL();
+    setTimeout(() => {
+      this.$announcer.set('API Validation application loaded. Please enter your backend URL and path to validation folder, then press the continue button.')
+    }, 3000)
   }
 
   urlRules = [
@@ -113,6 +118,16 @@ export default class Main extends Vue {
       this.setURL(this.url);
       this.setPath(this.path);
       this.$router.push("/requests");
+    }
+  }
+
+  @Watch('valid')
+  onValidChanged(val: boolean) {
+    if (val) {
+      this.$announcer.set('You can now click the continue button')
+    }
+    else {
+      this.$announcer.set('Continue button disabled. Please fill out the correct fields')
     }
   }
 

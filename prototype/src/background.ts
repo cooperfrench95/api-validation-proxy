@@ -146,6 +146,7 @@ app.on("ready", async () => {
     }
   }
   createWindow();
+  app.setAccessibilitySupportEnabled(true)
 });
 
 // Exit cleanly on request from parent process in development mode.

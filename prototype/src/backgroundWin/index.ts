@@ -248,9 +248,14 @@ app.all("*", async (req, res) => {
         params: req.query
       });
 
+      let resBody = response.data
+      if (Array.isArray(response.data) && response.data.length) {
+        resBody = [response.data[0]]
+      }
+
       const responseValidation = await validate(
         endpoint,
-        response.data,
+        resBody,
         'response',
         req.method,
         validationPath
@@ -271,7 +276,7 @@ app.all("*", async (req, res) => {
           method: req.method,
           statusCode: response.status,
           statusText: response.statusText,
-          data: response.data,
+          data: resBody,
           isValid,
           invalidFields,
           responseTime: moment().diff(
@@ -294,7 +299,9 @@ app.all("*", async (req, res) => {
       // Make our response to the client the same as the response we received from the server
       // Headers
       Object.keys(response.headers).forEach(key => {
-        res.set(key, response.headers[key]);
+        if (key !== "transfer-encoding") {
+          res.set(key, response.headers[key]);
+        }
       });
 
       // Status code

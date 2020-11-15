@@ -4523,6 +4523,15 @@ eslint-plugin-vue@^6.2.2:
     semver "^5.6.0"
     vue-eslint-parser "^7.0.0"
 
+eslint-plugin-vuejs-accessibility@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-vuejs-accessibility/-/eslint-plugin-vuejs-accessibility-0.6.0.tgz#28416f971873ae60f1c1050e42726a2d3bdfde4c"
+  integrity sha512-l3MQ3H1Z3JY704RG92a0R1zGJ93pnU7a9/lDpv1AVdPya6qLnQzwxcxUi2sIYkSnVjS9wEw+0KkfA7gykilT2g==
+  dependencies:
+    aria-query "^4.2.2"
+    emoji-regex "^9.0.0"
+    vue-eslint-parser "^7.0.0"
+
 eslint-scope@^4.0.0, eslint-scope@^4.0.3:
   version "4.0.3"
   resolved "https://registry.yarnpkg.com/eslint-scope/-/eslint-scope-4.0.3.tgz#ca03833310f6889a3264781aa82e63eb9cfe7848"
@@ -10755,6 +10764,16 @@ vm-browserify@^1.0.1:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/vm-browserify/-/vm-browserify-1.1.2.tgz#78641c488b8e6ca91a75f511e7a3b32a86e5dda0"
   integrity sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==
+
+vue-announcer@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/vue-announcer/-/vue-announcer-1.0.6.tgz#550322b6a386681b95f39449f213041903061804"
+  integrity sha512-lqHZTORhFrNlL5w3c+S8Y5yWNgwvQCaNpAOJvTNtYA7HK8BL6YWvq0RhG+DaMWwRp7BxpFNe9Yv2P9Vmsb/KnA==
+
+vue-axe@^2.4.2:
+  version "2.4.2"
+  resolved "https://registry.yarnpkg.com/vue-axe/-/vue-axe-2.4.2.tgz#cb2e23bc209a2b7fb71cd33cb41829752046719b"
+  integrity sha512-qrt94fk55GUcoDefoIL9fd+UkZ3CFWgXd42PyiWb22ZeV8pHxrZ3WkQz/ekmjO/nKXVya546QywNX0LW6RmWkA==
 
 vue-class-component@^7.1.0, vue-class-component@^7.2.3:
   version "7.2.6"
