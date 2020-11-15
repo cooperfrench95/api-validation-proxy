@@ -14,11 +14,22 @@
                 <v-text-field
                   v-model="url"
                   placeholder="Enter URL"
+                  label="Your backend URL"
                   outlined
                   :rules="urlRules"
                   color="primary"
                   >{{ url }}</v-text-field
                 >
+              </v-col>
+              <v-col cols="12">
+                <v-text-field
+                  v-model="path"
+                  label="Path to your validation files"
+                  placeholder="Full path e.g. /home/user/project/validators/"
+                  outlined
+                  :rules="pathRules"
+                  color="primary"
+                >{{ path }}</v-text-field>
               </v-col>
               <v-col cols="12">
                 <v-subheader>
@@ -52,8 +63,10 @@ import type { ActionMethod } from "vuex";
 @Component
 export default class Main extends Vue {
   url = "";
+  path = "";
 
   @Getter("handler") handler!: IPCHandler;
+  @Action("setPath") setPath!: ActionMethod;
   @Action("setURL") setURL!: ActionMethod;
 
   mounted() {
@@ -72,11 +85,21 @@ export default class Main extends Vue {
     },
   ];
 
+  pathRules = [
+    (v: string): boolean | string => {
+      return (!!v && /^(([a-zA-Z]{1}:\\)|\/)([a-zA-Z_-\s0-9.\]\\\/]+)(\\|\/)$/.test(v)) || "Invalid path"
+    }
+  ]
+
   async getURL() {
     const response = await this.handler.send("get-backend-url");
     if (response.url) {
       this.url = response.url;
       this.setURL(this.url);
+    }
+    if (response.path) {
+      this.path = response.path;
+      this.setPath(this.path)
     }
   }
 
@@ -84,15 +107,17 @@ export default class Main extends Vue {
     const response = await this.handler.send("change-backend-url", {
       event: "change-backend-url",
       url: this.url,
+      path: this.path,
     });
-    if (response.url === this.url && this.valid) {
+    if (response.url === this.url && response.path === this.path && this.valid) {
       this.setURL(this.url);
+      this.setPath(this.path);
       this.$router.push("/requests");
     }
   }
 
   get valid() {
-    return this.url && this.urlRules[0](this.url) === true;
+    return this.url && this.urlRules[0](this.url) === true && this.path && this.pathRules[0](this.path) === true;
   }
 }
 </script>

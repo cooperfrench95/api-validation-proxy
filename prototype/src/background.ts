@@ -1,4 +1,4 @@
-import { ValidationNotification } from './types';
+import { ValidationNotification, SaveTemplateCommand } from './types';
 
 import { app, protocol, BrowserWindow, ipcMain as ipc, Notification } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";

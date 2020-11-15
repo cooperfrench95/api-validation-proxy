@@ -4,21 +4,24 @@ module.exports = {
       id: "uuid",
       start: "timestamp",
       end: "timestamp",
-      title: "string&length>10",
-      "description?": "string|null",
+      title: "string",
+      description: "null",
       budgetedHours: "number",
       project: "uuid",
       parent: "uuid",
-      dependsOn: "uuid|null",
+      dependsOn: "null",
       slotTemplate: {
         employees: {
-          "generic?": {
-            "3?": {
+          generic: {
+            3: {
               amount: "number",
               start: "string",
               end: "string",
-              "breaks?": [
-                "number"
+              breaks: [
+                {
+                  start: "number",
+                  end: "string"
+                }
               ]
             }
           }
@@ -26,5 +29,17 @@ module.exports = {
         resources: {}
       }
     }
+  },
+  response: {
+    POST: {
+      name: "string",
+      message: "string",
+      code: "number",
+      className: "string",
+      data: {
+        url: "string"
+      },
+      errors: {}
+    }
   }
-};
+}

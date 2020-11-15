@@ -4,6 +4,7 @@ import { ipcRenderer as ipc } from "electron";
 type IPCHandlerResponse<T> = {
   event: T;
   url?: string;
+  path?: string;
 };
 
 export class IPCHandler extends EventEmitter {

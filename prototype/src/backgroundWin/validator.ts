@@ -1,5 +1,6 @@
 import { invalidField, validationAttemptResult, validationResult } from './../types';
 import validator from "validator";
+import { promises as fs } from 'fs';
 
 const typeCheckers = {
   array: (i: unknown) => Array.isArray(i),
@@ -319,15 +320,64 @@ function createValidationTemplate(body: object): object | string[] | object[] | 
   return null
 }
 
-export { validate, createValidationTemplate };
+async function saveValidationTemplate(
+  endpoint: string,
+  method: string,
+  requestTemplate: string,
+  responseTemplate: string,
+  pathToValidation: string,
+): Promise<boolean> {
+  try {
+    const endpointWithoutSlash = endpoint.replace('/', '')
+    let existingObject = {
+      request: {},
+      response: {}
+    }
+    try {
+      const template = __non_webpack_require__(
+        pathToValidation + endpointWithoutSlash + ".js"
+      );
+      if (template) {
+        existingObject = template
+        if (!existingObject.request) {
+          existingObject.request = {}
+        }
+        if (!existingObject.response) {
+          existingObject.response = {}
+        }
+      }
+    }
+    catch (err) {
+      console.log(err)
+      existingObject = {
+        request: {},
+        response: {}
+      }
+    }
+    existingObject.request[method] = JSON.parse(requestTemplate)
+    existingObject.response[method] = JSON.parse(responseTemplate)
+    const wholeObjectAsFormattedString = 'module.exports = ' + JSON.stringify(existingObject, null, 4)
+    await fs.writeFile(pathToValidation + endpointWithoutSlash + '.js', wholeObjectAsFormattedString)
+    return true
+  }
+  catch (e) {
+    console.log(e)
+    return false
+  }
+}
+
+export { validate, createValidationTemplate, saveValidationTemplate };
 
 // TODOs
 // // * Hook up validator to the rest of the application
-// * Implement validation recorder using above createValidationTemplate function
-// * Click record button
-// * Enter endpoint name
-// * Make series of requests
-// * Review the resulting JSON
-// * Save the file
-// * Implement views to fine tune validation, add user-defined functions to templates
-// * What about recursive objects?
+// // * Implement validation recorder using above createValidationTemplate function
+// // * Click record button
+// // * Enter endpoint name
+// // * Make series of requests
+// // * Review the resulting JSON
+// // * Save the file
+// // * Implement views to fine tune validation,
+// * add user-defined functions to templates
+// * Handle different routes on the same endpoint e.g. /employees/:id and also params e.g. ?all=true
+// * What about recursive objects? Currently not supported
+// * If get, ignore request body

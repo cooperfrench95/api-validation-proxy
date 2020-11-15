@@ -6,7 +6,7 @@ import axios, { AxiosRequestConfig } from "axios";
 import { ipcRenderer as ipc } from "electron";
 import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
-import { createValidationTemplate, validate } from "./validator";
+import { createValidationTemplate, saveValidationTemplate, validate } from "./validator";
 import httpProxy from "http-proxy";
 
 // Axios defaults to XHR in the browser (which electron technically is) so we then can't set headers like origin and host. So we override it to the node one here - it's not a security issue in this use case
@@ -30,6 +30,7 @@ app.use(bodyParser.json());
 app.use(cors(corsOptions));
 
 let actualURL = "http://localhost:3030/";
+let validationPath = "/home/cooper/Documents/ecu project/prototype/exampleValidations/";
 let isRecording = false
 let recordingEndpoint = ''
 let recordingMethod = ''
@@ -41,6 +42,7 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
     case "change-backend-url":
       console.log(data);
       actualURL = data.data.url;
+      validationPath = data.data.path;
       // Forward websockets
       // proxy = httpProxy.createServer({
       //   target: "ws://" + actualURL.replace('https://', '').replace('http://', ''),
@@ -50,10 +52,10 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
       // proxy.on("error", (e: Error) => {
       //   console.log(e);
       // });
-      ipc.send("response", { url: actualURL, event: "change-backend-url" });
+      ipc.send("response", { url: actualURL, path: validationPath, event: "change-backend-url" });
       break;
     case "get-backend-url":
-      ipc.send("response", { url: actualURL, event: "get-backend-url" });
+      ipc.send("response", { url: actualURL, path: validationPath, event: "get-backend-url" });
       break;
     case "record-endpoint":
       isRecording = true
@@ -62,6 +64,18 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
       ipc.send('response', {
         success: true,
         event: 'record-endpoint'
+      })
+      break
+    case "save-validation":
+      ipc.send('response', {
+        success: await saveValidationTemplate(
+          data.data.endpoint,
+          data.data.method,
+          data.data.requestTemplate,
+          data.data.responseTemplate,
+          validationPath
+        ),
+        event: 'save-validation'
       })
       break
     default:
@@ -192,7 +206,7 @@ app.all("*", async (req, res) => {
         req.body,
         'request',
         req.method,
-        "/home/cooper/Documents/ecu project/prototype/exampleValidations/"
+        validationPath
       );
 
       if (validationResult.couldBeValidated) {
@@ -239,7 +253,7 @@ app.all("*", async (req, res) => {
         response.data,
         'response',
         req.method,
-        "/home/cooper/Documents/ecu project/prototype/exampleValidations/"
+        validationPath
       )
 
       if (responseValidation.couldBeValidated) {

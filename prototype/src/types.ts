@@ -83,3 +83,10 @@ export interface ConversionResult {
   asObject: object;
   asString: string;
 }
+
+export interface SaveTemplateCommand {
+  endpoint: string;
+  method: string;
+  requestTemplate: object;
+  responseTemplate: object;
+}

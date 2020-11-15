@@ -45,86 +45,148 @@
                 Review request template
               </v-stepper-step>
               <v-stepper-content :step="2">
-                <v-col cols="6">
-                  <v-subheader>
-                    Generated request template:
-                  </v-subheader>
-                </v-col>
-                <v-spacer />
-                <v-col cols="2">
-                  <v-select :items="['basic', 'as json']" label="Edit" v-model="editMode" @change="viewConverted">
-                  </v-select>
-                </v-col>
-                <v-col cols="12">
-                  <v-card-text v-if="editMode === 'basic'" class="cardTextClass">
-                    <div v-for="(line, index) in modifiableRequestTypings" :key="index">
-                      <p v-if="!line.type">
-                        <span>{{ line.display }}</span>
-                      </p>
-                      <p v-else>
-                        <span>{{ line.display }}</span>
-                        <span style="max-width: 150px; display: inline-flex; height: 10px;">
-                          <v-select dense outlined v-if="line.type !== 'object' && line.type !== 'array'" v-model="line.type" :items="typeOptions"></v-select>
-                          <v-select dense outlined v-else disabled :value="line.type" :items="['object', 'array']">
-                            <template v-slot:append>
-                              <div></div>
-                            </template>
-                          </v-select>
-                        </span>
-                        <span> {{ line.displayAfter }}</span>
-                        <span style="display: inline-flex">
-                          <v-checkbox dense v-model="line.optional" label="Optional?" />
-                        </span>
-                      </p>
-                    </div>
-                  </v-card-text>
-                  <v-card-text v-else class="cardTextClass">
-                    <v-textarea v-model="JSONRequestString" />
-                  </v-card-text>
-                </v-col>
-                <v-col cols="12">
-                  <v-btn block color="primary" @click.stop="step += 1">
-                    Next
-                  </v-btn>
-                </v-col>
+                <v-row dense>
+                  <v-col cols="6">
+                    <v-subheader>
+                      Generated request template:
+                    </v-subheader>
+                  </v-col>
+                  <v-spacer />
+                  <v-col cols="1">
+                    <v-icon v-if="editMode === 'as json'" class="pt-4" @click.stop="showFormattingHelp = true">mdi-help-circle</v-icon>
+                  </v-col>
+                  <v-col cols="3">
+                    <v-select :items="['basic', 'as json']" label="Edit" v-model="editMode" @change="viewConverted" :disabled="!JSONRequestStringValid">
+                    </v-select>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-card-text v-if="editMode === 'basic'" class="cardTextClass">
+                      <div v-for="(line, index) in modifiableRequestTypings" :key="index">
+                        <p v-if="!line.type">
+                          <span>{{ line.display }}</span>
+                        </p>
+                        <p v-else>
+                          <span>{{ line.display }}</span>
+                          <span style="display: inline-flex; height: 20px;">
+                            <v-select style="max-width: 150px; " dense outlined v-if="typeOptions.includes(line.type)" v-model="line.type" :items="typeOptions"></v-select>
+                            <div v-else class="customTypeClass">{{ line.type }}</div>
+                          </span>
+                          <span style="display: inline-flex">
+                            <v-checkbox dense v-model="line.optional" label="Optional?" />
+                          </span>
+                          <span> {{ line.displayAfter }}</span>
+                        </p>
+                      </div>
+                    </v-card-text>
+                    <v-card-text v-else >
+                      <v-textarea v-model="JSONRequestString" auto-grow :rules="[v => JSONRequestStringValid]" :style="(JSONRequestStringValid ? 'background-color:  rgba(17, 123, 17, 0.426)' : 'background-color: rgba(184, 16, 16, 0.419)') + '; '"/>
+                    </v-card-text>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-btn :disabled="!JSONRequestStringValid" block color="primary" @click.stop="step += 1">
+                      Next
+                    </v-btn>
+                  </v-col>
+                </v-row>
               </v-stepper-content>
               <v-stepper-step :complete="step > 3" step="3">
-                Review request template
+                Review response template
               </v-stepper-step>
               <v-stepper-content :step="3">
-                <v-col cols="12">
-                  <v-subheader>
-                    Generated response template:
-                  </v-subheader>
-                  <v-card-text class="cardTextClass">
-                    <div v-for="(line, index) in modifiableResponseTypings" :key="index">
-                      <p v-if="!line.type">
-                        <span>{{ line.display }}</span>
-                      </p>
-                      <p v-else>
-                        <span>{{ line.display }}</span>
-                        <span style="max-width: 150px; display: inline-flex; height: 10px;">
-                          <v-select dense outlined v-if="line.type !== 'object' && line.type !== 'array'" v-model="line.type" :items="typeOptions"></v-select>
-                          <v-select dense outlined v-else disabled :value="line.type" :items="['object', 'array']">
-                            <template v-slot:append>
-                              <div></div>
-                            </template>
-                          </v-select>
-                        </span>
-                        <span> {{ line.displayAfter }}</span>
-                        <span style="display: inline-flex">
-                          <v-checkbox dense v-model="line.optional" label="Optional?" />
-                        </span>
-                      </p>
-                    </div>
-                  </v-card-text>
-                </v-col>
+                <v-row dense>
+                  <v-col cols="6">
+                    <v-subheader>
+                      Generated response template:
+                    </v-subheader>
+                  </v-col>
+                  <v-spacer />
+                  <v-col cols="1">
+                    <v-icon v-if="editMode === 'as json'" class="pt-4" @click.stop="showFormattingHelp = true">mdi-help-circle</v-icon>
+                  </v-col>
+                  <v-col cols="3">
+                    <v-select :items="['basic', 'as json']" label="Edit" v-model="editMode" @change="viewConverted" :disabled="!JSONResponseStringValid">
+                    </v-select>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-card-text v-if="editMode === 'basic'" class="cardTextClass">
+                      <div v-for="(line, index) in modifiableResponseTypings" :key="index">
+                        <p v-if="!line.type">
+                          <span>{{ line.display }}</span>
+                        </p>
+                        <p v-else>
+                          <span>{{ line.display }}</span>
+                          <span style="display: inline-flex; height: 20px;">
+                            <v-select style="max-width: 150px; " dense outlined v-if="typeOptions.includes(line.type)" v-model="line.type" :items="typeOptions"></v-select>
+                            <div v-else class="customTypeClass">{{ line.type }}</div>
+                          </span>
+                          <span style="display: inline-flex">
+                            <v-checkbox dense v-model="line.optional" label="Optional?" />
+                          </span>
+                          <span> {{ line.displayAfter }}</span>
+                        </p>
+                      </div>
+                    </v-card-text>
+                    <v-card-text v-else >
+                      <v-textarea v-model="JSONResponseString" auto-grow :rules="[v => JSONResponseStringValid]" :style="(JSONResponseStringValid ? 'background-color:  rgba(17, 123, 17, 0.426)' : 'background-color: rgba(184, 16, 16, 0.419)') + '; '"/>
+                    </v-card-text>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-btn :disabled="!JSONResponseStringValid" block color="primary" @click.stop="save">
+                      Save
+                    </v-btn>
+                  </v-col>
+                </v-row>
               </v-stepper-content>
             </v-stepper>
           </v-col>
         </v-row>
       </v-card-text>
     </v-card>
+    <v-dialog v-if="showFormattingHelp" v-model="showFormattingHelp" width="600">
+      <v-card width="600">
+        <v-card-title>
+          Formatting help
+        </v-card-title>
+        <v-card-text>
+          <v-row dense class="text-left">
+            <v-col cols="12">
+              The following denotes the formatting required when editing your validation template as JSON.
+            </v-col>
+            <v-col cols="12">
+              <ul>
+                <li>Template must be valid JSON.</li>
+                <li>Key names cannot inherently contain question marks or colons. Adding a question mark to the end of a key denotes that it is optional, i.e. it may be undefined or not present on the object at all.</li>
+                <li>When denoting a type, the following are valid:
+                  <ul>
+                    <li v-for="(type, index) in typeOptions" :key="index">
+                      <code>{{ type }}</code>
+                    </li>
+                  </ul>
+                </li>
+                <li>UUIDs are expected to be v4 UUIDs.</li>
+                <li>For non-primitive types (objects and arrays), instead of denoting the type with a string as above (e.g. <code>"id": "uuid"</code>) you should denote the type literally, i.e. if id is an object it would be <code>"id": { (..your object here) ..}</code></li>
+                <li>Arrays must contain something that indicates what the array should contain. If the array is to contain a primitive type, for instance if it is an array of numbers, you can write an array containing the string containing that type: <code>"ids": ["number"]</code>. If the array is to contain non-primitive types, then as above, denote those directly. For example: <code>"myObjectArray": [{ "id": uuid", "name": "string" }]</code></li>
+                <li>You may combine multiple primitive types using the | operator. For instance, if <code>employeeID</code> can be either a uuid or a number, you could write: <code>"employeeID": "uuid|number"</code></li>
+                <li>Strings can have a length property to indicate the desired length of the string. See the following examples:
+                  <ul>
+                    <li>String with length more than 0: <code>string&length>0</code></li>
+                    <li>String with length less than 10: <code>{{ 'string&length<10' }}</code></li>
+                    <li>String with length more than or equal to 10: <code>string&length>=10</code></li>
+                    <li>String with length less than or equal to 10: <code>string&length<=10</code></li>
+                    <li>String with length exactly 4: <code>string&length=4</code></li>
+                  </ul>
+                </li>
+              </ul>
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn block color="primary" @click.stop="showFormattingHelp = false">
+            Got it!
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-dialog>
 </template>
 
@@ -156,6 +218,7 @@ export default class Recorder extends Vue {
   ];
 
   recording = false;
+  showFormattingHelp = false;
   step = 1;
   editMode = "basic";
   JSONRequestString = "";
@@ -195,7 +258,6 @@ export default class Recorder extends Vue {
   }
 
   handleSuccessfulRecording(data: RecordingResult) {
-    console.log("data", data, event);
     this.requestResult = data.requestTemplate;
     if (typeof data.requestTemplate === "object" && data.requestTemplate) {
       this.modifiableRequestTypings = this.getLinesForDisplay(
@@ -211,6 +273,10 @@ export default class Recorder extends Vue {
       this.modifiableResponseTypings.length &&
       this.modifiableRequestTypings.length
     ) {
+      const converted = this.convertBackToObject(this.modifiableRequestTypings);
+      const responseConverted = this.convertBackToObject(this.modifiableResponseTypings);
+      this.JSONRequestString = converted.asString;
+      this.JSONResponseString = responseConverted.asString;
       this.responseResult = data.responseTemplate;
       this.recording = false;
       this.step = 2;
@@ -230,10 +296,13 @@ export default class Recorder extends Vue {
     return typesParsed;
   }
 
-  removeWhitespaceNotInKey(input: string): string {
+  removeWhitespaceNotInKey(input: string, optional: boolean): string {
     const firstQuote = input.indexOf('"');
     const secondQuote = input.indexOf('"', firstQuote + 1);
-    const savedKey = input.substring(firstQuote + 1, secondQuote);
+    let savedKey = input.substring(firstQuote + 1, secondQuote);
+    if (optional && savedKey.indexOf("?") !== savedKey.length - 1) {
+      savedKey = savedKey + "?";
+    }
     const noWhiteSpace = input.replace(/ /g, "");
     const firstQuoteInNoWhiteSpace = noWhiteSpace.indexOf('"');
     const secondQuoteInNoWhiteSpace = noWhiteSpace.indexOf(
@@ -267,7 +336,12 @@ export default class Recorder extends Vue {
         };
       }
     }
-    const fieldName = splitByColon[0] + ": ";
+    let fieldName = splitByColon[0] + ": ";
+    let optional = false;
+    if (splitByColon[0].indexOf("?") === splitByColon[0].length - 2) {
+      optional = true;
+      fieldName = fieldName.replace('?"', '"');
+    }
     let displayAfter = ",";
     const type = splitByColon[1]
       .replace(/"/g, "")
@@ -322,35 +396,108 @@ export default class Recorder extends Vue {
         actualType = "boolean";
         break;
       default:
-        actualType = "Unknown";
+        actualType = type;
         break;
     }
     return {
       display: fieldName,
       type: actualType,
       displayAfter,
-      optional: false,
+      optional,
     };
   }
 
-  viewConverted() {
-    if (this.step === 2) {
-      const converted = this.convertBackToObject(this.modifiableRequestTypings);
-      this.JSONRequestString = converted.asString;
+  viewConverted(e: 'as json'|'basic') {
+    if (e === 'basic') {
+      // Convert JSON back to basic
+      if (this.step === 2) {
+        const object = JSON.parse(this.JSONRequestString)
+        this.modifiableRequestTypings = this.getLinesForDisplay(object)
+      }
+      else if (this.step === 3) {
+        const object = JSON.parse(this.JSONResponseString)
+        this.modifiableResponseTypings = this.getLinesForDisplay(object)
+      }
     }
-    else if (this.step === 3) {
-      const converted = this.convertBackToObject(
-        this.modifiableResponseTypings
-      );
-      this.JSONResponseString = converted.asString;
+    else {
+      // Convert basic to json
+      if (this.step === 2) {
+        const converted = this.convertBackToObject(this.modifiableRequestTypings);
+        this.JSONRequestString = converted.asString;
+        this.modifiableRequestTypings = this.getLinesForDisplay(
+          converted.asObject
+        );
+      }
+      else if (this.step === 3) {
+        const converted = this.convertBackToObject(
+          this.modifiableResponseTypings
+        );
+        this.JSONResponseString = converted.asString;
+        this.modifiableResponseTypings = this.getLinesForDisplay(
+          converted.asObject
+        );
+      }
     }
   }
 
-  // TODO these functions need to also make sure the user is following the request template structure (e.g. the types are within the valid type options)
-  get JSONRequestStringInvalid() {
+  validateType(input: string): boolean {
+    console.log(input, 'input')
+    try {
+      const allowedTypes = [...this.typeOptions, 'array', 'object']
+      const operators = ['<', '>', '=']
+      const longOperators = ['>=', '<=']
+      if (allowedTypes.includes(input)) {
+        return true
+      }
+      const splitByOr = input.split('|')
+      for (let i = 0; i < splitByOr.length; i += 1) {
+        const current = splitByOr[i]
+        if (allowedTypes.includes(current)) {
+          continue
+        }
+        if (!current.includes('string&length')) {
+          console.log('fail 1')
+          return false
+        }
+        if (current.indexOf('string&length') === 0 && current.length > 13) {
+          if (longOperators.includes(current.substring(13, 15))) {
+            const num = current.substring(15, current.length)
+            if (!isNaN(Number(num)) && Number(num) > 0) {
+              continue
+            }
+          }
+          else if (operators.includes(current[13])) {
+            const num = current.substring(14, current.length)
+            if (!isNaN(Number(num)) && Number(num) > 0) {
+              continue
+            }
+          }
+        }
+        console.log('fail 2')
+        return false
+      }
+      return true
+    }
+    catch (e) {
+      console.error(e)
+      return false
+    }
+  }
+
+  get JSONRequestStringValid() {
     let valid = false;
     try {
-      JSON.parse(this.JSONRequestString);
+      const object = JSON.parse(this.JSONRequestString);
+      const lineByLine = this.getLinesForDisplay(object)
+      for (let i = 0; i < lineByLine.length; i += 1) {
+        const line = lineByLine[i]
+        if (line.type) {
+          const validType = this.validateType(line.type)
+          if (!validType) {
+            return false
+          }
+        }
+      }
       valid = true;
     }
     catch (e) {
@@ -359,23 +506,47 @@ export default class Recorder extends Vue {
     return valid;
   }
 
-  get JSONResponseStringInvalid() {
+  get JSONResponseStringValid() {
     let valid = false;
     try {
-      JSON.parse(this.JSONResponseString);
+      const object = JSON.parse(this.JSONResponseString);
+      const lineByLine = this.getLinesForDisplay(object)
+      for (let i = 0; i < lineByLine.length; i += 1) {
+        const line = lineByLine[i]
+        if (line.type) {
+          const validType = this.validateType(line.type)
+          if (!validType) {
+            return false
+          }
+        }
+      }
       valid = true;
     }
     catch (e) {
       return valid;
     }
     return valid;
+  }
+
+  async save() {
+    const res = await this.handler.send('save-validation', {
+      endpoint: this.endpointName,
+      method: this.method,
+      requestTemplate: this.JSONRequestString,
+      responseTemplate: this.JSONResponseString
+    })
+    console.log(res)
+    this.show = false
   }
 
   convertBackToObject(input: LineDescription[]): ConversionResult {
     let returnItem = "";
     input.forEach((item) => {
       if (item.type) {
-        let addString = this.removeWhitespaceNotInKey(item.display);
+        let addString = this.removeWhitespaceNotInKey(
+          item.display,
+          item.optional
+        );
         addString += `${
           ["object", "array"].includes(item.type) ? `` : `"${item.type}"`
         }${item.displayAfter}`;
@@ -414,5 +585,17 @@ export default class Recorder extends Vue {
 }
 p {
   margin-bottom: 0px;
+}
+.customTypeClass {
+  margin: 8px;
+  border: 1px solid grey;
+  border-radius: 5px;
+  padding: 8px;
+  color: grey;
+  height: fit-content;
+}
+h1 {
+  color: rgba(184, 16, 16, 0.419)
+
 }
 </style>
