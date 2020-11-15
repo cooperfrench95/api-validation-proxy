@@ -251,7 +251,7 @@
 
 <script lang="ts">
 import moment from "moment";
-import { Component, Vue } from "vue-property-decorator";
+import { Component, Vue, Watch } from "vue-property-decorator";
 import { IPCHandler } from "../IPCHandler";
 import {
   IncomingRequest,
@@ -279,6 +279,13 @@ export default class RequestView extends Vue {
   connectionError = false;
   showRecorder = false;
   announcerDead = false;
+
+  @Watch('requests')
+  onRequestsChange(val: Request[]) {
+    if (val.length > 100) {
+      val.splice(0, 1)
+    }
+  }
 
   mounted() {
     if (!this.handler.isListening()) {
@@ -333,7 +340,11 @@ export default class RequestView extends Vue {
   }
 
   beautify(input: object): string {
-    return JSON.stringify(input, null, 4);
+    const beautiful = JSON.stringify(input, null, 4);
+    if (beautiful.length > 4000) {
+      return beautiful.substr(0, 4000) + '\n\n...object concatenated for performance reasons'
+    }
+    return beautiful
   }
 
   announce(message: string) {

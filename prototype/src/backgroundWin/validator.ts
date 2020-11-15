@@ -109,7 +109,8 @@ function recurseThroughObject(
         throw new Error('Type could not be determined')
       }
       obj.forEach((item: any, index: number) => {
-        if (desiredType === 'object' || desiredType === 'array') {
+        // Only fully validate the first object in arrays
+        if ((desiredType === 'object' || desiredType === 'array') && index === 0) {
           const fieldValidations = recurseThroughObject(item, template[0]);
           fieldValidations.forEach(i => {
             const trueKey = index + "." + i.key;
@@ -381,3 +382,7 @@ export { validate, createValidationTemplate, saveValidationTemplate };
 // * Handle different routes on the same endpoint e.g. /employees/:id and also params e.g. ?all=true
 // * What about recursive objects? Currently not supported
 // * If get, ignore request body
+// * Handle large arrays - check first index, then just check the rest for types?
+// * The frontend UI cannot handle rendering a massive array, even if you don't validate the whole thing
+// * Frontend in general should delete requests from the stack when they get over a certain amount
+// * Write readme and caveat document
