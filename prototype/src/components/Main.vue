@@ -3,7 +3,7 @@
     <vue-announcer />
     <v-container>
       <v-row dense align="center" justify="center">
-        <v-card width="400" class="mt-10">
+        <v-card width="400" class="mt-10 black" rounded>
           <v-card-title>
             <span class="mainTitle">
               Enter your dev backend URL
@@ -40,6 +40,7 @@
               <v-col cols="12">
                 <v-btn
                   block
+                  outlined
                   color="primary"
                   @click.stop="confirmURL"
                   :disabled="!valid"
@@ -82,7 +83,7 @@ export default class Main extends Vue {
     (v: string): boolean | string => {
       return (
         (!!v &&
-          /((http|https):\/\/)?[a-zA-Z0-9.-_]{2,256}:([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\//.test(
+          /((http|https):\/\/)?[a-zA-Z0-9.-_]{2,256}(:[0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])?(\/)$/.test(
             v
           )) ||
         "Invalid URL"

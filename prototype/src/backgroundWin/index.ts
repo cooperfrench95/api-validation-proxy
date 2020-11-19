@@ -8,12 +8,18 @@ import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
 import { createValidationTemplate, saveValidationTemplate, validate } from "./validator";
 import httpProxy from "http-proxy";
+// import https from 'https';
+// process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// const Agent = new https.Agent({
+//   rejectUnauthorized: false
+// })
 
 // Axios defaults to XHR in the browser (which electron technically is) so we then can't set headers like origin and host. So we override it to the node one here - it's not a security issue in this use case
 const safeAxios = axios.create({
   adapter: require("axios/lib/adapters/http"),
+  // httpsAgent: Agent,
   // No need to throw an error when status > 300, we want to pass the error through to the client instead of handling it here
-  validateStatus: status => status >= 200
+  validateStatus: status => status >= 200,
 });
 
 const corsOptions = {
@@ -29,8 +35,8 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors(corsOptions));
 
-let actualURL = "http://localhost:3030/";
-let validationPath = "/home/cooper/Documents/ecu project/prototype/exampleValidations/";
+let actualURL = "";
+let validationPath = "";
 let isRecording = false
 let recordingEndpoint = ''
 let recordingMethod = ''
@@ -43,6 +49,7 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
       console.log(data);
       actualURL = data.data.url;
       validationPath = data.data.path;
+      safeAxios.defaults.headers.common.host = actualURL;
       // Forward websockets
       // proxy = httpProxy.createServer({
       //   target: "ws://" + actualURL.replace('https://', '').replace('http://', ''),
@@ -239,14 +246,20 @@ app.all("*", async (req, res) => {
       isValid = true
       invalidFields = []
 
+      const hostRemoved = { ...req.headers }
+      hostRemoved.host = target.split('://')[1].split('/')[0]
+      hostRemoved.url = target
+
       // Send the request through to the target server
       const response = await safeAxios.request({
         method: method,
         url: target,
         data: req.body,
-        headers: req.headers,
-        params: req.query
+        headers: hostRemoved,
+        params: req.query,
       });
+
+      console.log(response)
 
       let resBody = response.data
       if (Array.isArray(response.data) && response.data.length) {

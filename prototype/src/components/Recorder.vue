@@ -48,7 +48,7 @@
                 </v-col>
               </v-stepper-content>
               <v-stepper-step :complete="step > 2" step="2">
-                <span :tabindex="step === 2 ? 0 : null">Review request template</span>
+                <span style="cursor: pointer" aria-label="Step 2" @click="step = 2" @keydown.space="step = 2" :tabindex="step === 2 ? 0 : null">Review request template</span>
               </v-stepper-step>
               <v-stepper-content :step="2">
                 <v-row v-if="step === 2" dense>
@@ -96,7 +96,7 @@
                 </v-row>
               </v-stepper-content>
               <v-stepper-step :complete="step > 3" step="3">
-                <span :tabindex="step === 3 ? 0 : null">Review response template</span>
+                <span aria-label="Step 2" :tabindex="step === 3 ? 0 : null">Review response template</span>
               </v-stepper-step>
               <v-stepper-content :step="3">
               <v-row v-if="step === 3"  dense>
@@ -434,39 +434,6 @@ export default class Recorder extends Vue {
     };
   }
 
-  viewConverted(e: 'as json'|'basic') {
-    if (e === 'basic') {
-      // Convert JSON back to basic
-      if (this.step === 2) {
-        const object = JSON.parse(this.JSONRequestString)
-        this.modifiableRequestTypings = this.getLinesForDisplay(object)
-      }
-      else if (this.step === 3) {
-        const object = JSON.parse(this.JSONResponseString)
-        this.modifiableResponseTypings = this.getLinesForDisplay(object)
-      }
-    }
-    else {
-      // Convert basic to json
-      if (this.step === 2) {
-        const converted = this.convertBackToObject(this.modifiableRequestTypings);
-        this.JSONRequestString = converted.asString;
-        this.modifiableRequestTypings = this.getLinesForDisplay(
-          converted.asObject
-        );
-      }
-      else if (this.step === 3) {
-        const converted = this.convertBackToObject(
-          this.modifiableResponseTypings
-        );
-        this.JSONResponseString = converted.asString;
-        this.modifiableResponseTypings = this.getLinesForDisplay(
-          converted.asObject
-        );
-      }
-    }
-  }
-
   validateType(input: string): boolean {
     console.log(input, 'input')
     try {
@@ -565,6 +532,47 @@ export default class Recorder extends Vue {
     return valid;
   }
 
+  viewConverted(e: 'as json'|'basic') {
+    if (e === 'basic') {
+      // Convert JSON back to basic
+      this.convertRequestStringToArray()
+      this.convertResponseStringToArray()
+    }
+    else {
+      // Convert basic to json
+      this.convertRequestArrayToString()
+      this.convertResponseArrayToString()
+    }
+  }
+
+  convertRequestStringToArray() {
+    const object = JSON.parse(this.JSONRequestString)
+    this.modifiableRequestTypings = this.getLinesForDisplay(object)
+  }
+
+  convertRequestArrayToString() {
+    const converted = this.convertBackToObject(this.modifiableRequestTypings);
+    this.JSONRequestString = converted.asString;
+    this.modifiableRequestTypings = this.getLinesForDisplay(
+      converted.asObject
+    );
+  }
+
+  convertResponseStringToArray() {
+    const object = JSON.parse(this.JSONResponseString)
+    this.modifiableResponseTypings = this.getLinesForDisplay(object)
+  }
+
+  convertResponseArrayToString() {
+    const converted = this.convertBackToObject(
+      this.modifiableResponseTypings
+    );
+    this.JSONResponseString = converted.asString;
+    this.modifiableResponseTypings = this.getLinesForDisplay(
+      converted.asObject
+    );
+  }
+
   @Watch('JSONResponseStringValid')
   onJSONResponseStringValidChange(val: boolean) {
     if (!val) {
@@ -576,6 +584,12 @@ export default class Recorder extends Vue {
   }
 
   async save() {
+    if (this.editMode === 'basic') {
+      this.viewConverted('as json')
+    }
+    else {
+      this.viewConverted('basic')
+    }
     await this.handler.send('save-validation', {
       endpoint: this.endpointName,
       method: this.method,

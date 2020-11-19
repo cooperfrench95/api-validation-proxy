@@ -1,4 +1,4 @@
-import { ValidationNotification, SaveTemplateCommand } from './types';
+import { ValidationNotification } from './types';
 
 import { app, protocol, BrowserWindow, ipcMain as ipc, Notification } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
@@ -27,8 +27,8 @@ protocol.registerSchemesAsPrivileged([
 function createWindow() {
   // Create the browser window.
   win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1920,
+    height: 1080,
     titleBarStyle: "hidden",
     autoHideMenuBar: true,
     frame: true,

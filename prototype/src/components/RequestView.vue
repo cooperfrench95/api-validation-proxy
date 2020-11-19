@@ -72,12 +72,12 @@
               <v-expansion-panel-content color="black">
                 <v-row dense>
                   <v-col v-if="!request.isValid" cols="12">
-                    <v-card outlined tabindex="0">
+                    <v-card :link="false" :ripple="false" outlined tabindex="0">
                       <v-card-title clickable="false" class="red darken-3">
                         Request validation failures
                       </v-card-title>
                       <v-card-text class="cardTextClass">
-                        <v-simple-table>
+                        <v-simple-table class="black">
                           <thead>
                             <tr>
                               <th>Field</th>
@@ -95,12 +95,12 @@
                     </v-card>
                   </v-col>
                   <v-col cols="6">
-                    <v-card outlined tabindex="0">
+                    <v-card :ripple="false" outlined tabindex="0">
                       <v-card-title clickable="false" class="primary darken-4">
                         <span class="subtitle text-left">Request Headers</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
-                        <v-simple-table>
+                        <v-simple-table class="black">
                           <thead>
                             <tr>
                               <th>Header</th>
@@ -138,7 +138,7 @@
                     </v-card>
                   </v-col>
                   <v-col cols="6">
-                    <v-card outlined tabindex="0">
+                    <v-card :ripple="false" outlined tabindex="0">
                       <v-card-title clickable="false" class="primary darken-4">
                         <span class="subtitle text-left">Request Body</span>
                       </v-card-title>
@@ -150,12 +150,12 @@
                 </v-row>
                 <v-row dense v-if="request.response">
                    <v-col v-if="!request.response.isValid" cols="12">
-                    <v-card outlined tabindex="0">
+                    <v-card :ripple="false" outlined tabindex="0">
                       <v-card-title clickable="false" class="red lighten-1">
                         Response validation failures
                       </v-card-title>
                       <v-card-text class="cardTextClass">
-                        <v-simple-table>
+                        <v-simple-table class="black">
                           <thead>
                             <tr>
                               <th>Field</th>
@@ -173,7 +173,7 @@
                     </v-card>
                   </v-col>
                   <v-col cols="6">
-                    <v-card outlined tabindex="0">
+                    <v-card :ripple="false" outlined tabindex="0">
                       <v-card-title
                         :class="
                           (request.response.statusCode < 400
@@ -183,7 +183,7 @@
                         <span class="subtitle text-left">Response Headers</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
-                        <v-simple-table>
+                        <v-simple-table class="black">
                           <thead>
                             <tr>
                               <th>Header</th>
@@ -221,7 +221,7 @@
                     </v-card>
                   </v-col>
                   <v-col cols="6">
-                    <v-card outlined tabindex="0">
+                    <v-card :ripple="false" outlined tabindex="0">
                       <v-card-title
                         :class="
                           (request.response.statusCode < 400
@@ -367,6 +367,7 @@ h1 {
   overflow-x: hidden;
   white-space: pre-wrap;
   text-align: left;
+  background: black;
 }
 ::-webkit-scrollbar {
   width: 10px;
