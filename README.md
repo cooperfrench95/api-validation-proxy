@@ -5,7 +5,8 @@
 This is a prototype version, as such there are no tests or releases, and no localisation. Accessibility has been accounted for.
 ## Demo
 
-(Put screenshots here)
+![](https://github.com/cooperfrench95/api-validation-proxy/blob/master/DemoScreenshot1.png)
+![](https://github.com/cooperfrench95/api-validation-proxy/blob/master/DemoScreenshot2.png)
 
 ## Usage
 
