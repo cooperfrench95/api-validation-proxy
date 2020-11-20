@@ -76,3 +76,4 @@ I plan to provide ready builds for each platform at a later stage.
 
 * Currently there is no mechanism to keep validation files synced, for instance in a remote repo. This is also planned for the future, but right now they are stored in your file system.
 * In future there could be a way to export your validation files as OpenAPI (Swagger) documentation, or to create generated test cases for your API. But this isn't part of this version.
+* It won't work with endpoints that expect things like tree structures that are handled recursively
