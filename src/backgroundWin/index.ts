@@ -169,12 +169,15 @@ app.all("*", async (req, res) => {
 
   try {
     if (doNotValidate) {
+      const hostRemoved = { ...req.headers }
+      hostRemoved.host = target.split('://')[1].split('/')[0]
+      hostRemoved.url = target
       // Send the request through to the target server
       const response = await safeAxios.request({
         method: method,
         url: target,
         data: req.body,
-        headers: req.headers,
+        headers: hostRemoved,
         params: req.query
       });
       const reqValidationTemplate = await createValidationTemplate(req.body)
