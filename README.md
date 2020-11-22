@@ -10,11 +10,6 @@ It also has a recorder function, which will listen for a request on an endpoint 
 
 This is a prototype version, as such there are no tests and no localisation. Accessibility has been accounted for. A linux pre-release is available under Releases.
 
-## Demo
-
-![](https://github.com/cooperfrench95/api-validation-proxy/blob/master/DemoScreenshot1.png)
-![](https://github.com/cooperfrench95/api-validation-proxy/blob/master/DemoScreenshot2.png)
-
 ## Usage
 
 ### Step 1
@@ -39,28 +34,29 @@ Send the same request again that you did in step 3, but this time change one of 
 
 Now, every time you send a request to that endpoint and the app is running, it will perform this validation for you.
 
-### Install dependencies
+## Install dependencies
 ```
 yarn
 ```
 
-### Run in development mode
+## Run in development mode
 ```
 yarn electron:serve
 ```
 
 Note that hot reload for the background window will not work due to the address being in use, so the express server will not be able to restart.
 
-### Production build
+## Production build
 ```
 yarn electron:build
 ```
+This will create a production build and place it in the dist_electron folder.
 
 You can specify the target platform with `-m` (mac), `-w` (windows) or `-l` (linux). But generally it won't build for a different platform without some configuration.
 
 I plan to provide ready builds for each platform at a later stage.
 
-### Caveats
+## Caveats
 
 * Only JSON response bodies are supported. Other responses, such as HTML may come back garbled.
 * If your API relies on cookies (e.g. for auth) this package likely does not suit your needs in its current form.
@@ -102,3 +98,9 @@ I plan to provide ready builds for each platform at a later stage.
 * Currently there is no mechanism to keep validation files synced, for instance in a remote repo. This is also planned for the future, but right now they are stored in your file system.
 * In future there could be a way to export your validation files as OpenAPI (Swagger) documentation, or to create generated test cases for your API. But this isn't part of this version.
 * It won't work with endpoints that expect things like tree structures that are handled recursively
+
+## Screenshots
+
+
+![](https://github.com/cooperfrench95/api-validation-proxy/blob/master/DemoScreenshot1.png)
+![](https://github.com/cooperfrench95/api-validation-proxy/blob/master/DemoScreenshot2.png)
