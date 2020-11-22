@@ -1,5 +1,11 @@
 # API Validator - Prototype
 
+## Description
+
+The application asks for a backend URL you would like to send requests to, as well as a path to a folder in which your validation files should be located. It then sits as a proxy layer between your client and server in your development environment and is capable of validating request and response JSON bodies between the two according to validation files that you define.
+
+It also has a recorder function, which will listen for a request on an endpoint and allow you to build a validation template based on this request. This way, you don't need to manually write out a series of validation files.
+
 ## Note
 
 This is a prototype version, as such there are no tests and no localisation. Accessibility has been accounted for. A linux pre-release is available under Releases.
@@ -11,11 +17,27 @@ This is a prototype version, as such there are no tests and no localisation. Acc
 
 ## Usage
 
-**Enter your backend URL and path to validation folder. Send your requests to localhost:3000. They will be forwarded to the target URL.**
+### Step 1
 
-The application asks for a backend URL you would like to send requests to, as well as a path to a folder in which your validation files should be located. It then sits as a proxy layer between your client and server in your development environment and is capable of validating request and response JSON bodies between the two according to validation files that you define.
+Open the application. It will ask you for a backend URL and a path to your validations folder. Enter these and click continue. The backend URL should be your API, e.g. `http://localhost:3030` or `https://api.mywebapp.com/`. `localhost:3000` is not allowed because this is the port at which the application spins up its proxy server. The path can be any **full path** on your system. The application will save .js files in here when you use the recorder.
 
-It also has a recorder function, which will listen for a request on an endpoint and allow you to build a validation template based on this request. This way, you don't need to manually write out a series of validation files.
+### Step 2
+
+You will now be in the requests view. If you make a request to `http://localhost:3000/` the application will now forward this request to your target backend URL and return the response it received. You will then also see the request in the requests view.
+
+### Step 3
+
+Click on `RECORDER` in the top right corner. Here you will be asked for a target endpoint and a request method. Let's pretend you want to validate a POST request to your API's `employees` endpoint. You would enter `/employees` and select `POST` from the dropdown, then hit `RECORD`.
+
+You should see a loading spinner. Send a `POST` request to `http://localhost:3000/employees` with a request body that you would expect in normal circumstances, then go back to the application. You should now have moved to step 2,  `Review request template`. Select the types you would like for each object property and whether or not they are optional (e.g. can be entirely absent from your JSON body). You can also directly edit the template as json, and formatting instructions are available by clicking on the `?` icon or pressing `ctrl+H`.
+
+Continue and do the same for your response, then hit save. You should now see a JS file saved at the path you entered in step 1. This is your validation template.
+
+### Step 4
+
+Send the same request again that you did in step 3, but this time change one of the values so that you expect it to fail validation. You should receive a system notification, and the offending request should show up in the requests view in the api validation app. You can then inspect the request and see exactly why it failed.
+
+Now, every time you send a request to that endpoint and the app is running, it will perform this validation for you.
 
 ### Install dependencies
 ```
