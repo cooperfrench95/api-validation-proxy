@@ -2,7 +2,8 @@
 
 ## Note
 
-This is a prototype version, as such there are no tests or releases, and no localisation. Accessibility has been accounted for.
+This is a prototype version, as such there are no tests and no localisation. Accessibility has been accounted for. A linux pre-release is available under Releases.
+
 ## Demo
 
 ![](https://github.com/cooperfrench95/api-validation-proxy/blob/master/DemoScreenshot1.png)
