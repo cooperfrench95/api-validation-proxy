@@ -10,7 +10,7 @@ This is a prototype version, as such there are no tests or releases, and no loca
 
 ## Usage
 
-The application asks for a backend URL and a path to the folder you would like to send requests to. It then sits as a proxy layer between your client and server in your development environment and is capable of validating request and response JSON bodies between the two according to validation files that you define.
+The application asks for a backend URL you would like to send requests to, as well as a path to a folder in which your validation files should be located. It then sits as a proxy layer between your client and server in your development environment and is capable of validating request and response JSON bodies between the two according to validation files that you define.
 
 It also has a recorder function, which will listen for a request on an endpoint and allow you to build a validation template based on this request. This way, you don't need to manually write out a series of validation files.
 
