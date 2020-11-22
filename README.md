@@ -14,7 +14,7 @@ This is a prototype version, as such there are no tests and no localisation. Acc
 
 ### Step 1
 
-Open the application. It will ask you for a backend URL and a path to your validations folder. Enter these and click continue. The backend URL should be your API, e.g. `http://localhost:3030` or `https://api.mywebapp.com/`. `localhost:3000` is not allowed because this is the port at which the application spins up its proxy server. The path can be any **full path** on your system. The application will save .js files in here when you use the recorder.
+Open the application. It will ask you for a backend URL and a path to your validations folder. Enter these and click continue. The backend URL should be your API, e.g. `http://localhost:3030/` or `https://api.mywebapp.com/`. `localhost:3000` is not allowed because this is the port at which the application spins up its proxy server. The path can be any **full path** on your system. The application will save .js files in here when you use the recorder.
 
 ### Step 2
 
