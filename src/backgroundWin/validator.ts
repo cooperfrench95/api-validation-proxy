@@ -36,7 +36,7 @@ const typeCheckers = {
 
 function determineType(i: unknown) {
   const type = "Unknown";
-  const potentials = Object.keys(typeCheckers).filter(i => i !== "lengthCheck");
+  const potentials = Object.keys(typeCheckers).filter(i => i !== "lengthCheck" && i !== 'string');
   for (let n = 0; n < potentials.length; n += 1) {
     try {
       const res = typeCheckers[potentials[n]](i);
@@ -48,6 +48,7 @@ function determineType(i: unknown) {
       continue;
     }
   }
+  if (type === 'Unknown' && typeof i === 'string') return 'string'
   return type;
 }
 
@@ -61,6 +62,9 @@ function allPropertiesExist(obj: object, template: object, originalKey: string) 
     }]
   }
   if (typeof obj === 'string') {
+    return []
+  }
+  if (Array.isArray(template) && Array.isArray(obj) && obj.length === 0) {
     return []
   }
   Object.keys(template).forEach(key => {
@@ -106,7 +110,10 @@ function recurseThroughObject(
     else {
       desiredType = determineType(template[0])
       if (desiredType === 'Unknown') {
-        throw new Error('Type could not be determined')
+        invalidFields.push({
+          key: '',
+          reason: "Could not determine desired type for this key in your template. Does your template contain an empty array or object? Always-empty arrays or objects are not valid types."
+        })
       }
       obj.forEach((item: any, index: number) => {
         // Only fully validate the first object in arrays
@@ -140,6 +147,7 @@ function recurseThroughObject(
       }
       const isPresentButIsFalsy =
         !receivedValue && Object.hasOwnProperty.call(template, key);
+      // const isPresentInTemplateButFalsy = !expectedValue && Object.hasOwnProperty.call(template, key);
       if (expectedValue && (receivedValue || isPresentButIsFalsy)) {
         // If array, we need to check the data inside the array
         if (
@@ -194,7 +202,7 @@ function recurseThroughObject(
               const singleType = mustHaves[j];
               if (singleType.includes("length")) {
                 const operator = singleType[6];
-                const length = singleType.split(operator)[2];
+                const length = singleType.split(operator)[1];
                 valid = typeCheckers.lengthCheck(
                   receivedValue,
                   Number(length),
@@ -245,11 +253,23 @@ function checkObject(
   const invalidFields: invalidField[] = [];
 
   if (!obj) {
-    throw new Error("Not an object");
+    return {
+      valid: false,
+      invalidFields: [{
+        key: '',
+        reason: 'Attempted to validate an object, but the item received was falsy'
+      }]
+    };
   }
   if (Array.isArray(obj)) {
     if (!Array.isArray(template) || !template.length) {
-      throw new Error("Received array but template is not array");
+      return {
+        valid: false,
+        invalidFields: [{
+          key: '',
+          reason: 'Received an array, but the template is not an array'
+        }]
+      };
     }
     obj.forEach((i, index) => {
       const results = recurseThroughObject(i, template[0]);
@@ -279,14 +299,15 @@ async function validate(
   body: object,
   type: 'request' | 'response',
   method: string,
-  pathToValidation: string
+  pathToValidation: string,
+  fullEndpointIncludingVariables: string
 ): Promise<validationAttemptResult> {
   if (pathToValidation) {
     try {
       const template = __non_webpack_require__(
         pathToValidation + endpoint + ".js"
       );
-      return { couldBeValidated: true, result: checkObject(body, template[type][method]) };
+      return { couldBeValidated: true, result: checkObject(body, template[type][method][fullEndpointIncludingVariables]) };
     }
     catch (e) {
       console.log(e);
@@ -317,6 +338,7 @@ function createValidationTemplate(body: object): object | string[] | object[] | 
       }
       return [determineType(body[0])];
     }
+    return []
   }
   return null
 }
@@ -329,10 +351,15 @@ async function saveValidationTemplate(
   pathToValidation: string,
 ): Promise<boolean> {
   try {
-    const endpointWithoutSlash = endpoint.replace('/', '')
+    const rootEndpoint = `/${endpoint.split('/')[1]}`
+    const endpointWithoutSlash = rootEndpoint.replace('/', '')
     let existingObject = {
-      request: {},
-      response: {}
+      request: {
+        [method]: {}
+      },
+      response: {
+        [method]: {}
+      }
     }
     try {
       const template = __non_webpack_require__(
@@ -341,22 +368,41 @@ async function saveValidationTemplate(
       if (template) {
         existingObject = template
         if (!existingObject.request) {
-          existingObject.request = {}
+          existingObject.request = {
+            [method]: {}
+          }
+        }
+        else if (!existingObject.request[method]) {
+          existingObject.request[method] = {}
         }
         if (!existingObject.response) {
-          existingObject.response = {}
+          existingObject.response = {
+            [method]: {}
+          }
+        }
+        else if (!existingObject.response[method]) {
+          existingObject.response[method] = {}
         }
       }
     }
     catch (err) {
       console.log(err)
       existingObject = {
-        request: {},
-        response: {}
+        request: {
+          [method]: {}
+        },
+        response: {
+          [method]: {}
+        }
       }
     }
-    existingObject.request[method] = JSON.parse(requestTemplate)
-    existingObject.response[method] = JSON.parse(responseTemplate)
+    if (method !== 'GET' && method !== 'DELETE') {
+      existingObject.request[method][endpoint] = JSON.parse(requestTemplate)
+    }
+    else {
+      existingObject.request[method][endpoint] = `${method} requests should not have JSON bodies and are therefore ignored`
+    }
+    existingObject.response[method][endpoint] = JSON.parse(responseTemplate)
     const wholeObjectAsFormattedString = 'module.exports = ' + JSON.stringify(existingObject, null, 4)
     await fs.writeFile(pathToValidation + endpointWithoutSlash + '.js', wholeObjectAsFormattedString)
     return true
@@ -370,19 +416,28 @@ async function saveValidationTemplate(
 export { validate, createValidationTemplate, saveValidationTemplate };
 
 // TODOs
-// // * Hook up validator to the rest of the application
-// // * Implement validation recorder using above createValidationTemplate function
-// // * Click record button
-// // * Enter endpoint name
-// // * Make series of requests
-// // * Review the resulting JSON
-// // * Save the file
-// // * Implement views to fine tune validation,
 // * add user-defined functions to templates
-// * Handle different routes on the same endpoint e.g. /employees/:id and also params e.g. ?all=true
+// // * Handle different routes on the same endpoint e.g. /employees/:id and also params e.g. ?all=true
 // * What about recursive objects? Currently not supported
-// * If get, ignore request body
-// * Handle large arrays - check first index, then just check the rest for types?
-// * The frontend UI cannot handle rendering a massive array, even if you don't validate the whole thing
-// * Frontend in general should delete requests from the stack when they get over a certain amount
-// * Write readme and caveat document
+// // * If get, ignore request body
+// // * Handle large arrays - check first index, then just check the rest for types?
+// // * The frontend UI cannot handle rendering a massive array, even if you don't validate the whole thing
+// // * Frontend in general should delete requests from the stack when they get over a certain amount
+// // * Write readme and caveat document
+
+// * Create settings menu for performance limitations
+// Current performance limitations:
+// Only 100 requests kept in memory in frontend
+// Only first item in array is parsed
+// Max string length of 4000 for JSON responses being displayed
+
+// // * App should remember your target url and path
+// // Add this in local storage
+
+// // * Bug: Expected string & length > 10 but received string
+// // Fix bug
+
+// Remembers local storage
+// Bug fixes: Handling empty arrays properly, strings with length params
+// Added option to mass-create endpoint templates
+// Endpoints can now have differing paths, such as /employees or /employees/:uuid

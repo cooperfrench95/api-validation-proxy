@@ -34,7 +34,7 @@
               :ref="request.id"
               :key="request.id"
               class="mb-1"
-              :style="`border: 1px solid ${request.isValid === true ? 'green' : request.isValid === false ? 'red' : 'white'}`"
+              :style="`border: 1px solid ${request.isValid === true && (!request.response || request.response.isValid) ? 'green' : (request.isValid === false || (request.response && request.response.isValid === false)) ? 'red' : 'white'}`"
             >
               <v-expansion-panel-header color="black">
                   <template v-slot:default="{ open }">

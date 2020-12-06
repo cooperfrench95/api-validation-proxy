@@ -45,6 +45,12 @@ export type validationResult = {
   invalidFields?: Array<invalidField>;
 };
 
+export type IPCHandlerResponse<T> = {
+  event: T;
+  url?: string;
+  path?: string;
+};
+
 export type validationAttemptResult = {
   couldBeValidated: boolean;
   result?: validationResult;
@@ -70,6 +76,11 @@ export interface RecordingResult {
   event: "recording";
   requestTemplate: object | string[] | object[] | null;
   responseTemplate: object | string[] | object[] | null;
+  endpoint: string;
+  method: string|undefined;
+  shouldSave?: boolean;
+  request: Request;
+  response: Response;
 }
 
 export interface LineDescription {

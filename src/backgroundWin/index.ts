@@ -1,4 +1,5 @@
 import { IncomingRequest, IncomingResponse, RecordingResult } from "./../types";
+import validator from "validator";
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -8,6 +9,7 @@ import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
 import { createValidationTemplate, saveValidationTemplate, validate } from "./validator";
 import httpProxy from "http-proxy";
+import fs from 'fs';
 // import https from 'https';
 // process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 // const Agent = new https.Agent({
@@ -37,11 +39,66 @@ app.use(cors(corsOptions));
 
 let actualURL = "";
 let validationPath = "";
-let isRecording = false
+let isRecording = false;
+let isRecordingAll = false;
 let recordingEndpoint = ''
 let recordingMethod = ''
 
-// let proxy = null;
+const allTemplates = {}
+
+function getAllTemplates(path: string) {
+  const contents = {}
+  fs.readdir(path, (err, files) => {
+    if (err) {
+      console.log(err)
+    }
+
+    files.forEach(file => {
+      contents[file] = __non_webpack_require__(path + file)
+      const noExtension = file.replace('.js', '')
+      allTemplates[noExtension] = []
+      Object.values(contents[file].response).forEach(method => {
+        if (typeof method === 'object' && method) {
+          Object.keys(method).forEach(fullPath => {
+            allTemplates[noExtension].push(fullPath)
+          })
+        }
+      })
+      delete contents[file]
+    })
+  })
+  console.log('allTemplates', allTemplates)
+}
+
+// Determines whether a request should be handled by a particular handler based on its URL path. For instance, GET /employees is different to GET /employees/:uuid
+function findRequestTypeFromURL(endpoint: string, fullPath: string) {
+  const possibleTypesForAURLString = ['number', 'uuid', 'timestamp', 'locale', 'jwt']
+  const typeChecker = [
+    (i: unknown) => !isNaN(Number(i)),
+    (i: unknown) => typeof i === "string" && validator.isUUID(i),
+    (i: unknown) => typeof i === "string" && validator.isISO8601(i),
+    (i: string) => validator.isLocale(i),
+    (i: string) => validator.isJWT(i),
+  ]
+  const allPathParts = fullPath.split('/').filter((i, index) => index > 1)
+  let rebuiltPath = `/${endpoint}`
+  allPathParts.forEach(part => {
+    console.log('part', part)
+    let found = false
+    for (let i = 0; i < typeChecker.length; i += 1) {
+      if (typeChecker[i](part)) {
+        rebuiltPath += `/:${possibleTypesForAURLString[i]}`
+        found = true
+        break
+      }
+    }
+    if (!found) {
+      rebuiltPath += `/${part}`
+    }
+  })
+  console.log('rebuild path', rebuiltPath)
+  return rebuiltPath
+}
 
 ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
   switch (data.event) {
@@ -49,6 +106,7 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
       console.log(data);
       actualURL = data.data.url;
       validationPath = data.data.path;
+      getAllTemplates(data.data.path);
       safeAxios.defaults.headers.common.host = actualURL;
       // Forward websockets
       // proxy = httpProxy.createServer({
@@ -67,12 +125,26 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
     case "record-endpoint":
       isRecording = true
       recordingMethod = data.data.method
-      recordingEndpoint = data.data.endpoint.substr(1, data.data.endpoint.length - 1)
+      recordingEndpoint = data.data.endpoint
+      console.log('SENT ENDPOINT', data.data.endpoint, 'PARSED', recordingEndpoint)
       ipc.send('response', {
         success: true,
         event: 'record-endpoint'
       })
       break
+    case "record-all-endpoints":
+      isRecordingAll = true
+      ipc.send('response', {
+        success: true,
+        event: 'record-all-endpoints'
+      })
+      break
+    case 'stop-recording-all-endpoints':
+      isRecordingAll = false;
+      ipc.send('response', {
+        success: true,
+        event: 'stop-recording-all-endpoints'
+      })
     case "save-validation":
       ipc.send('response', {
         success: await saveValidationTemplate(
@@ -84,6 +156,7 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
         ),
         event: 'save-validation'
       })
+      getAllTemplates(validationPath);
       break
     default:
       break;
@@ -104,7 +177,7 @@ app.all("*", async (req, res) => {
 
   let target = actualURL;
   let endpoint = "/";
-  let additionalPaths = "";
+  let fullPath = "/";
   console.log("params", req.params);
   if (req.params) {
     target = target.substr(0, target.length - 1);
@@ -118,15 +191,20 @@ app.all("*", async (req, res) => {
       console.log("這裡", path[i]);
       if (i === 0) {
         endpoint = path[i];
+        fullPath += path[i];
       }
       else {
-        additionalPaths += `/${path[i]}`;
+        fullPath += `/${path[i]}`;
       }
     }
   }
 
+  console.log('fullPath', fullPath)
+  const reqType = findRequestTypeFromURL(endpoint, fullPath)
+  console.log(recordingEndpoint, reqType)
+
   let doNotValidate = false
-  if (isRecording && endpoint === recordingEndpoint && recordingMethod === req.method) {
+  if ((isRecording && reqType === recordingEndpoint && recordingMethod === req.method) || isRecordingAll) {
     doNotValidate = true
   }
 
@@ -172,6 +250,7 @@ app.all("*", async (req, res) => {
       const hostRemoved = { ...req.headers }
       hostRemoved.host = target.split('://')[1].split('/')[0]
       hostRemoved.url = target
+      hostRemoved['cache-control'] = 'no-cache'
       // Send the request through to the target server
       const response = await safeAxios.request({
         method: method,
@@ -180,13 +259,40 @@ app.all("*", async (req, res) => {
         headers: hostRemoved,
         params: req.query
       });
-      const reqValidationTemplate = await createValidationTemplate(req.body)
+      let reqValidationTemplate = null
+      if (!(method === 'GET' || method === 'DELETE')) {
+        reqValidationTemplate = await createValidationTemplate(req.body)
+      }
       const resValidationTemplate = await createValidationTemplate(response.data)
 
       const recordingResult: RecordingResult = {
         event: 'recording',
         requestTemplate: reqValidationTemplate,
-        responseTemplate: resValidationTemplate
+        responseTemplate: resValidationTemplate,
+        endpoint: reqType,
+        method: method,
+        request: {
+          id: uniqueIdentifier,
+          headers: req.headers,
+          data: req.body,
+          method: req.method,
+          origin: req.hostname,
+          destination: target,
+          endpoint,
+          isValid: false,
+          timestamp: 0,
+          params: req.query,
+        },
+        response: {
+          id: uniqueIdentifier,
+          headers: response.headers,
+          method: req.method,
+          statusCode: response.status,
+          statusText: response.statusText,
+          data: response.data,
+          isValid: false,
+          responseTime: 0
+        }
       }
 
       ipc.send(SEND_TO_UI_THREAD, recordingResult)
@@ -211,20 +317,23 @@ app.all("*", async (req, res) => {
       // Validate incoming request
       let isValid = true
       let invalidFields
-      const validationResult = await validate(
-        endpoint,
-        req.body,
-        'request',
-        req.method,
-        validationPath
-      );
-
-      if (validationResult.couldBeValidated) {
-        if (validationResult.result && !validationResult.result.valid) {
-          isValid = false
-          invalidFields = validationResult.result.invalidFields
+      if (!(method === 'GET' || method === 'DELETE')) {
+        const validationResult = await validate(
+          endpoint,
+          req.body,
+          'request',
+          req.method,
+          validationPath,
+          reqType
+        );
+        if (validationResult.couldBeValidated) {
+          if (validationResult.result && !validationResult.result.valid) {
+            isValid = false
+            invalidFields = validationResult.result.invalidFields
+          }
         }
       }
+
 
       const requestForUIThread: IncomingRequest = {
         event: "new-request",
@@ -252,6 +361,7 @@ app.all("*", async (req, res) => {
       const hostRemoved = { ...req.headers }
       hostRemoved.host = target.split('://')[1].split('/')[0]
       hostRemoved.url = target
+      hostRemoved['cache-control'] = 'no-cache'
 
       // Send the request through to the target server
       const response = await safeAxios.request({
@@ -268,13 +378,15 @@ app.all("*", async (req, res) => {
       if (Array.isArray(response.data) && response.data.length) {
         resBody = [response.data[0]]
       }
+      console.log(resBody, response, method, endpoint)
 
       const responseValidation = await validate(
         endpoint,
         resBody,
         'response',
         req.method,
-        validationPath
+        validationPath,
+        reqType
       )
 
       if (responseValidation.couldBeValidated) {
@@ -308,7 +420,7 @@ app.all("*", async (req, res) => {
       if (!responseForUIThread.response.isValid || !requestForUIThread.request.isValid) {
         ipc.send('validation-failure', {
           id: uniqueIdentifier,
-          endpoint,
+          endpoint: reqType,
         })
       }
 

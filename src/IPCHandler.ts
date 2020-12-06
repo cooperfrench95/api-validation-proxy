@@ -1,12 +1,6 @@
 import { EventEmitter } from "events";
 import { ipcRenderer as ipc } from "electron";
-
-type IPCHandlerResponse<T> = {
-  event: T;
-  url?: string;
-  path?: string;
-};
-
+import { IPCHandlerResponse } from './types';
 export class IPCHandler extends EventEmitter {
   constructor() {
     super();

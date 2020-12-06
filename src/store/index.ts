@@ -29,9 +29,11 @@ export default new Vuex.Store({
   mutations: {
     [SET_URL](state, url) {
       state.url = url;
+      localStorage.setItem('url', url)
     },
     [SET_PATH](state, path) {
       state.path = path;
+      localStorage.setItem('path', path)
     }
   }
 });

@@ -1,15 +1,33 @@
 <template>
   <v-dialog persistent v-model="show" width="800px">
     <vue-announcer />
-    <v-card color="black" role="dialog" width="800">
+    <v-card  role="dialog" width="800">
       <v-card-title aria-label="Dialog heading" role="heading" tabindex="0" >
-        Generate validation for new endpoint
+        Generate validation for new endpoint(s)
         <v-spacer />
         <v-icon @click.stop="show = false" role="button" aria-label="Close recorder dialog">mdi-close</v-icon>
       </v-card-title>
       <v-card-text>
-        <v-row dense>
+        <v-row v-if="!hasChosenMode" dense>
           <v-col cols="12">
+            <v-subheader class="text-left">
+              Would you like to generate a template for a single endpoint, or automatically generate templates for multiple endpoints?
+            </v-subheader>
+            <v-subheader class="text-left red--text">
+              WARNING: Choosing multiple endpoint mode could cause some of your existing templates to be overriden. Proceed with caution.
+            </v-subheader>
+          </v-col>
+          <v-col cols="12">
+            <v-btn outlined block @click.stop="singleEndpointMode = true; hasChosenMode = true" color="primary">Single</v-btn>
+          </v-col>
+          <v-col cols="12">
+            <v-btn outlined block @click.stop="recordAll" color="red">
+              Multiple
+            </v-btn>
+          </v-col>
+        </v-row>
+        <v-row dense v-else>
+          <v-col v-if="singleEndpointMode" cols="12">
             <v-stepper class="elevation-0 black" v-model="step" vertical>
               <v-stepper-step :complete="step > 1" step="1">
                 <span :tabindex="step === 1 ? 0 : null">Enter details</span>
@@ -21,7 +39,7 @@
                     required
                     :rules="[v => !!v]"
                     label="Endpoint name"
-                    placeholder="e.g. /users"
+                    placeholder="Define variable path params with :type. (e.g. /users/:uuid/user-groups/:number)"
                   >
                   </v-text-field>
                 </v-col>
@@ -51,7 +69,7 @@
                 <span style="cursor: pointer" aria-label="Step 2" @click="step = 2" @keydown.space="step = 2" :tabindex="step === 2 ? 0 : null">Review request template</span>
               </v-stepper-step>
               <v-stepper-content :step="2">
-                <v-row v-if="step === 2" dense>
+                <v-row v-if="step === 2 && method !== 'GET' && method !== 'DELETE'" dense>
                   <v-col cols="6">
                     <v-subheader tabindex="0">
                       Generated request template:
@@ -94,12 +112,24 @@
                     </v-btn>
                   </v-col>
                 </v-row>
+                <v-row v-else-if="step === 2" >
+                  <v-col cols="12">
+                    <v-subheader tabindex="0">
+                      No request body for this method. Click next.
+                    </v-subheader>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-btn outlined block color="primary" @click.stop="step += 1">
+                      Next
+                    </v-btn>
+                  </v-col>
+                </v-row>
               </v-stepper-content>
               <v-stepper-step :complete="step > 3" step="3">
                 <span aria-label="Step 2" :tabindex="step === 3 ? 0 : null">Review response template</span>
               </v-stepper-step>
               <v-stepper-content :step="3">
-              <v-row v-if="step === 3"  dense>
+              <v-row v-if="step === 3" dense>
                   <v-col cols="6">
                     <v-subheader tabindex="0">
                       Generated response template:
@@ -144,6 +174,59 @@
                 </v-row>
               </v-stepper-content>
             </v-stepper>
+          </v-col>
+          <v-col v-else cols="12">
+            <v-row dense>
+              <v-col cols="2">
+                <v-progress-circular class="mt-3" indeterminate />
+              </v-col>
+              <v-col cols="10" class="text-left">
+                Listening. Send as many requests to as many endpoints as you can, but make sure they're valid! Your templates will be generated based on the requests and responses. Requests that return a status code of >399 will be ignored.
+              </v-col>
+              <v-col cols="12" class="pb-0 mb-0">
+                <v-text-field class="pt-2" single-line v-model="searchString" append-icon="mdi-close" @click:append="searchString = ''" label="Search"/>
+              </v-col>
+              <v-col cols="12" class="pt-0 mt-0">
+                <v-simple-table height="400">
+                  <thead>
+                    <tr>
+                      <th style="cursor: pointer" @click.stop="selectAll">Save</th>
+                      <th>Endpoint</th>
+                      <th>Method</th>
+                      <th>View details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="text-left" v-for="(request, index) in filteredResponsesBulkMode" :key="index">
+                      <td>
+                        <v-checkbox v-model="request.shouldSave" />
+                      </td>
+                      <td>
+                        {{ request.endpoint }}
+                      </td>
+                      <td>
+                        {{ request.method }}
+                      </td>
+                      <td>
+                        <v-btn outlined color="primary" @click.stop="viewDetailsForRequest(request)">
+                          <v-icon>mdi-eye</v-icon>
+                        </v-btn>
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-simple-table>
+              </v-col>
+              <v-col cols="6" class="text-left">
+                <v-btn outlined @click.stop="receivedRequestsForBulkMode = []; show = false">
+                  Cancel
+                </v-btn>
+              </v-col>
+              <v-col class="text-right" cols="6">
+                <v-btn color="primary" outlined :disabled="totalSelectedBulkMode === 0" @click.stop="save">
+                  ({{ totalSelectedBulkMode }} Selected) Save
+                </v-btn>
+              </v-col>
+            </v-row>
           </v-col>
         </v-row>
       </v-card-text>
@@ -193,6 +276,91 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <v-dialog v-if="viewingDetails" :value="true" width="600">
+      <v-card width="600">
+        <v-card-title>
+          Request details
+          <v-spacer />
+          <v-icon @click.stop="viewingDetails = null">mdi-close</v-icon>
+        </v-card-title>
+        <v-card-text>
+          <v-row dense>
+            <v-col cols="12">
+              <div style="display: flex; font-size: 12pt" class="pa-2">
+                <span style="flex-grow: 1" class="text-left">
+                  {{ viewingDetails.method.toUpperCase() }} - {{ viewingDetails.endpoint }}
+                </span>
+                <span
+                  class="text--right pr-3"
+                  :style="
+                    `flex-grow: 0; font-weight: 1000; color: green`"
+                >
+                  {{ viewingDetails.response.statusCode }}
+                </span>
+              </div>
+            </v-col>
+            <v-expansion-panels accordion flat :style="`border: 1px solid white`">
+              <v-expansion-panel>
+                <v-expansion-panel-header >
+                  <v-col cols="12">
+                    Request
+                  </v-col>
+                </v-expansion-panel-header>
+                <v-expansion-panel-content >
+                  <v-col cols="12">
+                    <v-simple-table height="300" width="400">
+                      <thead>
+                        <tr>
+                          <th>Header</th>
+                          <th>Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr class="text-left" v-for="(h, k) in viewingDetails.request.headers" :key="k">
+                          <td valign="top">{{ k }}</td>
+                          <td style="max-width: 200px;">{{ h }}</td>
+                        </tr>
+                      </tbody>
+                    </v-simple-table>
+                    <p class="cardTextClass">
+                      {{ beautify(viewingDetails.request.data) }}
+                    </p>
+                  </v-col>
+                </v-expansion-panel-content>
+              </v-expansion-panel>
+              <v-expansion-panel>
+                <v-expansion-panel-header >
+                  <v-col cols="12">
+                    Response
+                  </v-col>
+                </v-expansion-panel-header>
+                <v-expansion-panel-content >
+                  <v-col cols="12">
+                    <v-simple-table height="300" width="400">
+                      <thead>
+                        <tr>
+                          <th>Header</th>
+                          <th>Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr class="text-left" v-for="(h, k) in viewingDetails.response.headers" :key="k">
+                          <td valign="top">{{ k }}</td>
+                          <td style="max-width: 200px;">{{ h }}</td>
+                        </tr>
+                      </tbody>
+                    </v-simple-table>
+                    <p class="cardTextClass">
+                      {{ beautify(viewingDetails.response.data) }}
+                    </p>
+                  </v-col>
+                </v-expansion-panel-content>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-row>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </v-dialog>
 </template>
 
@@ -200,7 +368,7 @@
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import { IPCHandler } from "../IPCHandler";
 import { Getter } from "vuex-class";
-import { ConversionResult, LineDescription, RecordingResult, SaveTemplateResult } from "@/types";
+import { ConversionResult, LineDescription, RecordingResult, SaveTemplateResult, IPCHandlerResponse } from "@/types";
 
 @Component
 export default class Recorder extends Vue {
@@ -225,10 +393,16 @@ export default class Recorder extends Vue {
 
   recording = false;
   showFormattingHelp = false;
+  singleEndpointMode = true;
+  hasChosenMode = false;
   step = 1;
   editMode = "basic";
   JSONRequestString = "";
   JSONResponseString = "";
+  viewingDetails: RecordingResult|null = null;
+  searchString = "";
+
+  receivedRequestsForBulkMode: RecordingResult[] = [];
 
   requestResult: object | string[] | object[] | null = null;
   modifiableRequestTypings: LineDescription[] = [];
@@ -258,6 +432,26 @@ export default class Recorder extends Vue {
     this.handler.off("save-validation", this.handleSaveEvent);
   }
 
+  get filteredResponsesBulkMode() {
+    if (!this.searchString) return this.receivedRequestsForBulkMode
+    return this.receivedRequestsForBulkMode.filter(i => i.endpoint.includes(this.searchString))
+  }
+
+  get totalSelectedBulkMode() {
+    return this.receivedRequestsForBulkMode.filter(i => i.shouldSave).length
+  }
+
+  selectAll() {
+    if (this.receivedRequestsForBulkMode.length) {
+      const selectedAlready = this.receivedRequestsForBulkMode[0].shouldSave
+      const newArray = this.receivedRequestsForBulkMode.map(i => {
+        i.shouldSave = !selectedAlready
+        return i
+      })
+      this.receivedRequestsForBulkMode = newArray
+    }
+  }
+
   get validEndpointNameAndMethod() {
     return (
       this.endpointName &&
@@ -283,35 +477,61 @@ export default class Recorder extends Vue {
     });
   }
 
+  recordAll() {
+    this.singleEndpointMode = false
+    this.hasChosenMode = true
+    this.recording = true;
+    this.handler.send("record-all-endpoints", {});
+  }
+
   handleSuccessfulRecording(data: RecordingResult) {
-    this.requestResult = data.requestTemplate;
-    if (typeof data.requestTemplate === "object" && data.requestTemplate) {
-      this.modifiableRequestTypings = this.getLinesForDisplay(
-        data.requestTemplate
-      );
+    if (this.singleEndpointMode) {
+      this.requestResult = data.requestTemplate;
+      const ignoreRequestPortion = (this.method === 'GET' || this.method === 'DELETE')
+      if (typeof data.requestTemplate === "object" && data.requestTemplate) {
+        this.modifiableRequestTypings = this.getLinesForDisplay(
+          data.requestTemplate
+        );
+      }
+      if (typeof data.responseTemplate === "object" && data.responseTemplate) {
+        this.modifiableResponseTypings = this.getLinesForDisplay(
+          data.responseTemplate
+        );
+      }
+      if (
+        this.modifiableResponseTypings.length &&
+        (this.modifiableRequestTypings.length || ignoreRequestPortion)
+      ) {
+        if (!ignoreRequestPortion) {
+          const converted = this.convertBackToObject(this.modifiableRequestTypings);
+          this.JSONRequestString = converted.asString;
+        }
+        const responseConverted = this.convertBackToObject(this.modifiableResponseTypings);
+        this.JSONResponseString = responseConverted.asString;
+        this.responseResult = data.responseTemplate;
+        this.recording = false;
+        this.$announcer.set('Request received. Please edit your validation template for the request & response')
+        this.step = 2;
+      }
     }
-    if (typeof data.responseTemplate === "object" && data.responseTemplate) {
-      this.modifiableResponseTypings = this.getLinesForDisplay(
-        data.responseTemplate
-      );
-    }
-    if (
-      this.modifiableResponseTypings.length &&
-      this.modifiableRequestTypings.length
+    else if (data && data.response
+      // && data.response.statusCode < 400
+      && this.receivedRequestsForBulkMode.findIndex(i => i.endpoint === data.endpoint && i.method === data.method) === -1
     ) {
-      const converted = this.convertBackToObject(this.modifiableRequestTypings);
-      const responseConverted = this.convertBackToObject(this.modifiableResponseTypings);
-      this.JSONRequestString = converted.asString;
-      this.JSONResponseString = responseConverted.asString;
-      this.responseResult = data.responseTemplate;
-      this.recording = false;
-      this.$announcer.set('Request received. Please edit your validation template for the request & response')
-      this.step = 2;
+      this.receivedRequestsForBulkMode.push(data)
     }
   }
 
+  viewDetailsForRequest(request: RecordingResult) {
+    this.viewingDetails = request
+  }
+
   beautify(input: object): string {
-    return JSON.stringify(input, null, 4);
+    const beautiful = JSON.stringify(input, null, 4);
+    if (beautiful.length > 4000) {
+      return beautiful.substr(0, 4000) + '\n\n...object concatenated for performance reasons'
+    }
+    return beautiful
   }
 
   getLinesForDisplay(input: object | object[]): LineDescription[] {
@@ -546,16 +766,21 @@ export default class Recorder extends Vue {
   }
 
   convertRequestStringToArray() {
-    const object = JSON.parse(this.JSONRequestString)
-    this.modifiableRequestTypings = this.getLinesForDisplay(object)
+    const ignoreRequestPortion = (this.method === 'GET' || this.method === 'DELETE')
+    if (!ignoreRequestPortion) {
+      const object = JSON.parse(this.JSONRequestString)
+      this.modifiableRequestTypings = this.getLinesForDisplay(object)
+    }
   }
 
   convertRequestArrayToString() {
-    const converted = this.convertBackToObject(this.modifiableRequestTypings);
-    this.JSONRequestString = converted.asString;
-    this.modifiableRequestTypings = this.getLinesForDisplay(
-      converted.asObject
-    );
+    if (!(this.method === 'GET' || this.method === 'DELETE')) {
+      const converted = this.convertBackToObject(this.modifiableRequestTypings);
+      this.JSONRequestString = converted.asString;
+      this.modifiableRequestTypings = this.getLinesForDisplay(
+        converted.asObject
+      );
+    }
   }
 
   convertResponseStringToArray() {
@@ -584,28 +809,53 @@ export default class Recorder extends Vue {
   }
 
   async save() {
-    if (this.editMode === 'basic') {
-      this.viewConverted('as json')
+    if (this.singleEndpointMode === false) {
+      const promises: Promise<IPCHandlerResponse<string|object>>[] = []
+      this.receivedRequestsForBulkMode.forEach(i => {
+        if (i.shouldSave) {
+          let requestTemplate = '{}'
+          if (i.method !== 'GET' && i.method !== 'DELETE') {
+            requestTemplate = JSON.stringify(i.requestTemplate)
+          }
+          const responseTemplate = JSON.stringify(i.responseTemplate)
+          promises.push(this.handler.send('save-validation', {
+            endpoint: i.endpoint,
+            method: i.method,
+            requestTemplate,
+            responseTemplate
+          }))
+        }
+      })
+      await Promise.all(promises)
+      this.handler.send('stop-recording-all-endpoints', {})
+      this.show = false
     }
     else {
-      this.viewConverted('basic')
+      if (this.editMode === 'basic') {
+        this.viewConverted('as json')
+      }
+      else {
+        this.viewConverted('basic')
+      }
+      await this.handler.send('save-validation', {
+        endpoint: this.endpointName,
+        method: this.method,
+        requestTemplate: this.JSONRequestString,
+        responseTemplate: this.JSONResponseString
+      })
     }
-    await this.handler.send('save-validation', {
-      endpoint: this.endpointName,
-      method: this.method,
-      requestTemplate: this.JSONRequestString,
-      responseTemplate: this.JSONResponseString
-    })
   }
 
   handleSaveEvent(e: SaveTemplateResult) {
-    if (e.success) {
-      this.$emit('announcement', 'Validation template saved. Dialog closed')
-      this.show = false
-    }
-    else {
-      this.$emit('announcement', 'Validation template could not be saved. Dialog closed')
-      this.show = false
+    if (this.singleEndpointMode) {
+      if (e.success) {
+        this.$emit('announcement', 'Validation template saved. Dialog closed')
+        this.show = false
+      }
+      else {
+        this.$emit('announcement', 'Validation template could not be saved. Dialog closed')
+        this.show = false
+      }
     }
   }
 
@@ -655,6 +905,7 @@ export default class Recorder extends Vue {
 }
 p {
   margin-bottom: 0px;
+  max-height: 200px !important;
 }
 .customTypeClass {
   margin: 8px;

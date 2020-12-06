@@ -73,7 +73,9 @@ export default class Main extends Vue {
   @Action("setURL") setURL!: ActionMethod;
 
   mounted() {
-    this.getURL();
+    setTimeout(() => {
+      this.getURL();
+    }, 200);
     setTimeout(() => {
       this.$announcer.set('API Validation application loaded. Please enter your backend URL and path to validation folder, then press the continue button.')
     }, 3000)
@@ -99,11 +101,19 @@ export default class Main extends Vue {
 
   async getURL() {
     const response = await this.handler.send("get-backend-url");
-    if (response.url) {
+    if (localStorage.getItem('url')) {
+      this.url = localStorage.getItem('url') || ''
+      this.setURL(this.url)
+    }
+    else if (response.url) {
       this.url = response.url;
       this.setURL(this.url);
     }
-    if (response.path) {
+    if (localStorage.getItem('path')) {
+      this.path = localStorage.getItem('path') || ''
+      this.setPath(this.path)
+    }
+    else if (response.path) {
       this.path = response.path;
       this.setPath(this.path)
     }
