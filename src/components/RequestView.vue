@@ -8,8 +8,8 @@
             <v-icon class="pr-2" aria-label="Alert" aria-hidden="false">
               mdi-alert
             </v-icon>
-            It appears your backend at
-            <strong class="px-1">{{ url }}</strong> is down
+            {{ $t('It appears your backend at') }}
+            <strong class="px-1">{{ url }}</strong>{{ $t(' is down') }}
           </v-subheader>
         </v-col>
         <v-col cols="3" style="text-align: left">
@@ -19,12 +19,12 @@
         </v-col>
         <v-col cols="6">
           <h1>
-            Requests
+            {{ $t('Requests') }}
           </h1>
         </v-col>
         <v-col cols="3" style="text-align: right">
           <v-btn outlined color="primary" @click.stop="showRecorder = true">
-            Recorder
+            {{ $t('Recorder') }}
           </v-btn>
         </v-col>
         <v-col cols="12">
@@ -74,14 +74,14 @@
                   <v-col v-if="!request.isValid" cols="12">
                     <v-card :link="false" :ripple="false" outlined tabindex="0">
                       <v-card-title clickable="false" class="red darken-3">
-                        Request validation failures
+                        {{ $t('Request validation failures') }}
                       </v-card-title>
                       <v-card-text class="cardTextClass">
                         <v-simple-table class="black">
                           <thead>
                             <tr>
-                              <th>Field</th>
-                              <th>Issue</th>
+                              <th>{{ $t('Field') }}</th>
+                              <th>{{ $t('Issue') }}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -97,14 +97,14 @@
                   <v-col cols="6">
                     <v-card :ripple="false" outlined tabindex="0">
                       <v-card-title clickable="false" class="primary darken-4">
-                        <span class="subtitle text-left">Request Headers</span>
+                        <span class="subtitle text-left">{{ ('Request Headers') }}</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
                         <v-simple-table class="black">
                           <thead>
                             <tr>
-                              <th>Header</th>
-                              <th>Value</th>
+                              <th>{{ $t('Header') }}</th>
+                              <th>{{ $t('Value') }}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -140,7 +140,7 @@
                   <v-col cols="6">
                     <v-card :ripple="false" outlined tabindex="0">
                       <v-card-title clickable="false" class="primary darken-4">
-                        <span class="subtitle text-left">Request Body</span>
+                        <span class="subtitle text-left">{{ $t('Request Body') }}</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
                         {{ beautify(request.data) }}
@@ -152,14 +152,14 @@
                    <v-col v-if="!request.response.isValid" cols="12">
                     <v-card :ripple="false" outlined tabindex="0">
                       <v-card-title clickable="false" class="red lighten-1">
-                        Response validation failures
+                        {{ $t('Response validation failures') }}
                       </v-card-title>
                       <v-card-text class="cardTextClass">
                         <v-simple-table class="black">
                           <thead>
                             <tr>
-                              <th>Field</th>
-                              <th>Issue</th>
+                              <th>{{ $t('Field') }}</th>
+                              <th>{{ $t('Issue') }}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -180,14 +180,14 @@
                             ? 'green'
                             : 'red') + ' darken-4'"
                       >
-                        <span class="subtitle text-left">Response Headers</span>
+                        <span class="subtitle text-left">{{ $t('Response Headers') }}</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
                         <v-simple-table class="black">
                           <thead>
                             <tr>
-                              <th>Header</th>
-                              <th>Value</th>
+                              <th>{{ $t('Header') }}</th>
+                              <th>{{ $t('Value') }}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -228,7 +228,7 @@
                             ? 'green'
                             : 'red') + ' darken-4'"
                       >
-                        <span class="subtitle text-left">Response Body</span>
+                        <span class="subtitle text-left">{{ $t('Response Body') }}</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
                         {{ beautify(request.response.data) }}
@@ -236,7 +236,7 @@
                     </v-card>
                   </v-col>
                   <v-col cols="12">
-                        <small>(Only the first element in long array responses is parsed for performance reasons)</small>
+                        <small>{{ $t('(Only the first element in long array responses is parsed for performance reasons)') }}</small>
                   </v-col>
                 </v-row>
               </v-expansion-panel-content>
@@ -291,7 +291,7 @@ export default class RequestView extends Vue {
     if (!this.handler.isListening()) {
       this.handler.listen();
     }
-    this.$announcer.set('This is the requests view. It consists of all the incoming requests coming in to your backend URL from localhost. It will notify you when a request does not conform to your validation templates.')
+    this.$announcer.set(`${this.$t('This is the requests view. It consists of all the incoming requests coming in to your backend URL from localhost. It will notify you when a request does not conform to your validation templates.')}`)
     setTimeout(() => {
       this.announcerDead = true
     }, 1000);
@@ -342,7 +342,7 @@ export default class RequestView extends Vue {
   beautify(input: object): string {
     const beautiful = JSON.stringify(input, null, 4);
     if (beautiful.length > 4000) {
-      return beautiful.substr(0, 4000) + '\n\n...object concatenated for performance reasons'
+      return beautiful.substr(0, 4000) + `\n\n...${this.$t('object concatenated for performance reasons')}`
     }
     return beautiful
   }

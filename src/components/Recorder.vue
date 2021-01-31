@@ -3,7 +3,7 @@
     <vue-announcer />
     <v-card  role="dialog" width="800">
       <v-card-title aria-label="Dialog heading" role="heading" tabindex="0" >
-        Generate validation for new endpoint(s)
+        {{ $t('Generate validation for new endpoint(s)') }}
         <v-spacer />
         <v-icon @click.stop="show = false" role="button" aria-label="Close recorder dialog">mdi-close</v-icon>
       </v-card-title>
@@ -11,18 +11,18 @@
         <v-row v-if="!hasChosenMode" dense>
           <v-col cols="12">
             <v-subheader class="text-left">
-              Would you like to generate a template for a single endpoint, or automatically generate templates for multiple endpoints?
+              {{ $t('Would you like to generate a template for a single endpoint, or automatically generate templates for multiple endpoints?') }}
             </v-subheader>
             <v-subheader class="text-left red--text">
-              WARNING: Choosing multiple endpoint mode could cause some of your existing templates to be overriden. Proceed with caution.
+              {{ $t('WARNING: Choosing multiple endpoint mode could cause some of your existing templates to be overriden. Proceed with caution.') }}
             </v-subheader>
           </v-col>
           <v-col cols="12">
-            <v-btn outlined block @click.stop="singleEndpointMode = true; hasChosenMode = true" color="primary">Single</v-btn>
+            <v-btn outlined block @click.stop="singleEndpointMode = true; hasChosenMode = true" color="primary">{{ $t('Single') }}</v-btn>
           </v-col>
           <v-col cols="12">
             <v-btn outlined block @click.stop="recordAll" color="red">
-              Multiple
+              {{ $t('Multiple') }}
             </v-btn>
           </v-col>
         </v-row>
@@ -30,7 +30,7 @@
           <v-col v-if="singleEndpointMode" cols="12">
             <v-stepper class="elevation-0 black" v-model="step" vertical>
               <v-stepper-step :complete="step > 1" step="1">
-                <span :tabindex="step === 1 ? 0 : null">Enter details</span>
+                <span :tabindex="step === 1 ? 0 : null">{{ $t('Enter details') }}</span>
               </v-stepper-step>
               <v-stepper-content :step="1">
                 <v-col v-if="step === 1" cols="12">
@@ -38,8 +38,8 @@
                     v-model="endpointName"
                     required
                     :rules="[v => !!v]"
-                    label="Endpoint name"
-                    placeholder="Define variable path params with :type. (e.g. /users/:uuid/user-groups/:number)"
+                    :label="$t('Endpoint name')"
+                    :placeholder="$t('Define variable path params with :type. (e.g. /users/:uuid/user-groups/:number)')"
                   >
                   </v-text-field>
                 </v-col>
@@ -61,18 +61,18 @@
                     outlined
                     :loading="recording"
                   >
-                    Record
+                    {{ $t('Record') }}
                   </v-btn>
                 </v-col>
               </v-stepper-content>
               <v-stepper-step :complete="step > 2" step="2">
-                <span style="cursor: pointer" aria-label="Step 2" @click="step = 2" @keydown.space="step = 2" :tabindex="step === 2 ? 0 : null">Review request template</span>
+                <span style="cursor: pointer" aria-label="Step 2" @click="step = 2" @keydown.space="step = 2" :tabindex="step === 2 ? 0 : null">{{ $t('Review request template') }}</span>
               </v-stepper-step>
               <v-stepper-content :step="2">
                 <v-row v-if="step === 2 && method !== 'GET' && method !== 'DELETE'" dense>
                   <v-col cols="6">
                     <v-subheader tabindex="0">
-                      Generated request template:
+                      {{ $t('Generated request template:') }}
                     </v-subheader>
                   </v-col>
                   <v-spacer />
@@ -81,6 +81,12 @@
                   </v-col>
                   <v-col cols="3">
                     <v-autocomplete :items="['basic', 'as json']" label="Edit" v-model="editMode" @change="viewConverted" :disabled="!JSONRequestStringValid">
+                      <template slot="selection" slot-scope="data">
+                        {{ $t(data.item) }}
+                      </template>
+                      <template slot="item" slot-scope="data">
+                        {{ $t(data.item) }}
+                      </template>
                     </v-autocomplete>
                   </v-col>
                   <v-col cols="12">
@@ -108,31 +114,31 @@
                   </v-col>
                   <v-col cols="12">
                     <v-btn outlined :disabled="!JSONRequestStringValid" block color="primary" @click.stop="step += 1">
-                      Next
+                      {{ $t('Next') }}
                     </v-btn>
                   </v-col>
                 </v-row>
                 <v-row v-else-if="step === 2" >
                   <v-col cols="12">
                     <v-subheader tabindex="0">
-                      No request body for this method. Click next.
+                      {{ $t('No request body for this method. Click next.') }}
                     </v-subheader>
                   </v-col>
                   <v-col cols="12">
                     <v-btn outlined block color="primary" @click.stop="step += 1">
-                      Next
+                      {{ $t('Next') }}
                     </v-btn>
                   </v-col>
                 </v-row>
               </v-stepper-content>
               <v-stepper-step :complete="step > 3" step="3">
-                <span aria-label="Step 2" :tabindex="step === 3 ? 0 : null">Review response template</span>
+                <span aria-label="Step 2" :tabindex="step === 3 ? 0 : null">{{ $t('Review response template') }}</span>
               </v-stepper-step>
               <v-stepper-content :step="3">
               <v-row v-if="step === 3" dense>
                   <v-col cols="6">
                     <v-subheader tabindex="0">
-                      Generated response template:
+                      {{ $t('Generated response template:') }}
                     </v-subheader>
                   </v-col>
                   <v-spacer />
@@ -141,6 +147,12 @@
                   </v-col>
                   <v-col cols="3">
                     <v-autocomplete :items="['basic', 'as json']" label="Edit" v-model="editMode" @change="viewConverted" :disabled="!JSONResponseStringValid">
+                      <template slot="selection" slot-scope="data">
+                        {{ $t(data.item) }}
+                      </template>
+                      <template slot="item" slot-scope="data">
+                        {{ $t(data.item) }}
+                      </template>
                     </v-autocomplete>
                   </v-col>
                   <v-col cols="12">
@@ -168,7 +180,7 @@
                   </v-col>
                   <v-col cols="12">
                     <v-btn outlined :disabled="!JSONResponseStringValid" block color="primary" @click.stop="save">
-                      Save
+                      {{ $t('Save') }}
                     </v-btn>
                   </v-col>
                 </v-row>
@@ -181,7 +193,7 @@
                 <v-progress-circular class="mt-3" indeterminate />
               </v-col>
               <v-col cols="10" class="text-left">
-                Listening. Send as many requests to as many endpoints as you can, but make sure they're valid! Your templates will be generated based on the requests and responses. Requests that return a status code of >399 will be ignored.
+                {{ $t("Listening. Send as many requests to as many endpoints as you can, but make sure they're valid! Your templates will be generated based on the requests and responses. Requests that return a status code of >399 will be ignored.") }}
               </v-col>
               <v-col cols="12" class="pb-0 mb-0">
                 <v-text-field class="pt-2" single-line v-model="searchString" append-icon="mdi-close" @click:append="searchString = ''" label="Search"/>
@@ -190,10 +202,10 @@
                 <v-simple-table height="400">
                   <thead>
                     <tr>
-                      <th style="cursor: pointer" @click.stop="selectAll">Save</th>
-                      <th>Endpoint</th>
-                      <th>Method</th>
-                      <th>View details</th>
+                      <th style="cursor: pointer" @click.stop="selectAll">{{ $t('Save') }}</th>
+                      <th>{{ $t('Endpoint') }}</th>
+                      <th>{{ $t('Method') }}</th>
+                      <th>{{ $t('View details') }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -218,12 +230,12 @@
               </v-col>
               <v-col cols="6" class="text-left">
                 <v-btn outlined @click.stop="receivedRequestsForBulkMode = []; show = false">
-                  Cancel
+                  {{ $t('Cancel') }}
                 </v-btn>
               </v-col>
               <v-col class="text-right" cols="6">
                 <v-btn color="primary" outlined :disabled="totalSelectedBulkMode === 0" @click.stop="save">
-                  ({{ totalSelectedBulkMode }} Selected) Save
+                  ({{ totalSelectedBulkMode }} {{ $t('Selected) Save')}}
                 </v-btn>
               </v-col>
             </v-row>
@@ -234,35 +246,35 @@
     <v-dialog v-if="showFormattingHelp" v-model="showFormattingHelp" width="600">
       <v-card role="dialog" width="600">
         <v-card-title tabindex="0">
-          Formatting help
+          {{ $t('Formatting help') }}
         </v-card-title>
         <v-card-text>
           <v-row dense class="text-left">
             <v-col tabindex="0" cols="12">
-              The following denotes the formatting required when editing your validation template as JSON.
+              {{ $t('The following denotes the formatting required when editing your validation template as JSON.') }}
             </v-col>
             <v-col tabindex="0" cols="12">
               <ul>
-                <li>Template must be valid JSON.</li>
-                <li>Key names cannot inherently contain question marks or colons. Adding a question mark to the end of a key denotes that it is optional, i.e. it may be undefined or not present on the object at all.</li>
-                <li>When denoting a type, the following are valid:
+                <li>{{ $t('Template must be valid JSON.') }}</li>
+                <li>{{ $t('Key names cannot inherently contain question marks or colons. Adding a question mark to the end of a key denotes that it is optional, i.e. it may be undefined or not present on the object at all.') }}</li>
+                <li>{{ $t('When denoting a type, the following are valid:') }}
                   <ul>
                     <li v-for="(type, index) in typeOptions" :key="index">
                       <code>{{ type }}</code>
                     </li>
                   </ul>
                 </li>
-                <li>UUIDs are expected to be v4 UUIDs.</li>
-                <li>For non-primitive types (objects and arrays), instead of denoting the type with a string as above (e.g. <code>"id": "uuid"</code>) you should denote the type literally, i.e. if id is an object it would be <code>"id": { (..your object here) ..}</code></li>
-                <li>Arrays must contain something that indicates what the array should contain. If the array is to contain a primitive type, for instance if it is an array of numbers, you can write an array containing the string containing that type: <code>"ids": ["number"]</code>. If the array is to contain non-primitive types, then as above, denote those directly. For example: <code>"myObjectArray": [{ "id": uuid", "name": "string" }]</code></li>
-                <li>You may combine multiple primitive types using the | operator. For instance, if <code>employeeID</code> can be either a uuid or a number, you could write: <code>"employeeID": "uuid|number"</code></li>
-                <li>Strings can have a length property to indicate the desired length of the string. See the following examples:
+                <li>{{ $t('UUIDs are expected to be v4 UUIDs') }}.</li>
+                <li>{{ ('For non-primitive types (objects and arrays), instead of denoting the type with a string as above (e.g. ') }}<code>{{ $t('"id": "uuid"') }}</code>{{ $t(') you should denote the type literally, i.e. if id is an object it would be ') }}<code>{{ $t('"id": { (..your object here) ..}') }}</code></li>
+                <li>{{ $t('Arrays must contain something that indicates what the array should contain. If the array is to contain a primitive type, for instance if it is an array of numbers, you can write an array containing the string containing that type: ') }}<code>"ids": ["number"]</code>{{ $t('. If the array is to contain non-primitive types, then as above, denote those directly. For example: ') }}<code>"myObjectArray": [{ "id": uuid", "name": "string" }]</code></li>
+                <li>{{ ('You may combine multiple primitive types using the | operator. For instance, if ') }}<code>employeeID</code> {{ $t('can be either a uuid or a number, you could write: ') }}<code>"employeeID": "uuid|number"</code></li>
+                <li>{{ $t('Strings can have a length property to indicate the desired length of the string. See the following examples:') }}
                   <ul>
-                    <li>String with length more than 0: <code>string&length>0</code></li>
-                    <li>String with length less than 10: <code>{{ 'string&length<10' }}</code></li>
-                    <li>String with length more than or equal to 10: <code>string&length>=10</code></li>
-                    <li>String with length less than or equal to 10: <code>string&length<=10</code></li>
-                    <li>String with length exactly 4: <code>string&length=4</code></li>
+                    <li>{{ $t('String with length more than 0: ') }}<code>string&length>0</code></li>
+                    <li>{{ $t('String with length less than 10: ') }}<code>{{ 'string&length<10' }}</code></li>
+                    <li>{{ $t('String with length more than or equal to 10: ') }}<code>string&length>=10</code></li>
+                    <li>{{ $t('String with length less than or equal to 10: ') }}<code>string&length<=10</code></li>
+                    <li>{{ $t('String with length exactly 4: ') }}<code>string&length=4</code></li>
                   </ul>
                 </li>
               </ul>
@@ -271,7 +283,7 @@
         </v-card-text>
         <v-card-actions>
           <v-btn outlined block color="primary" @click.stop="showFormattingHelp = false" aria-label="exit help dialog">
-            Got it!
+            {{ $t('Got it!') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -279,7 +291,7 @@
     <v-dialog v-if="viewingDetails" :value="true" width="600">
       <v-card width="600">
         <v-card-title>
-          Request details
+          {{ ('Request details') }}
           <v-spacer />
           <v-icon @click.stop="viewingDetails = null">mdi-close</v-icon>
         </v-card-title>
@@ -303,7 +315,7 @@
               <v-expansion-panel>
                 <v-expansion-panel-header >
                   <v-col cols="12">
-                    Request
+                    {{ $t('Request') }}
                   </v-col>
                 </v-expansion-panel-header>
                 <v-expansion-panel-content >
@@ -311,8 +323,8 @@
                     <v-simple-table height="300" width="400">
                       <thead>
                         <tr>
-                          <th>Header</th>
-                          <th>Value</th>
+                          <th>{{ $t('Header') }}</th>
+                          <th>{{ $t('Value') }}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -331,7 +343,7 @@
               <v-expansion-panel>
                 <v-expansion-panel-header >
                   <v-col cols="12">
-                    Response
+                    {{ $t('Response') }}
                   </v-col>
                 </v-expansion-panel-header>
                 <v-expansion-panel-content >
@@ -339,8 +351,8 @@
                     <v-simple-table height="300" width="400">
                       <thead>
                         <tr>
-                          <th>Header</th>
-                          <th>Value</th>
+                          <th>{{ $t('Header') }}</th>
+                          <th>{{ $t('Value') }}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -470,7 +482,7 @@ export default class Recorder extends Vue {
 
   record() {
     this.recording = true;
-    this.$announcer.set(`Listening. Please send a ${this.method} request to ${this.endpointName}`)
+    this.$announcer.set(`${this.$t('Listening. Please send a ')}${this.method}${this.$t(' request to ')}${this.endpointName}`)
     this.handler.send("record-endpoint", {
       endpoint: this.endpointName,
       method: this.method,
@@ -510,7 +522,7 @@ export default class Recorder extends Vue {
         this.JSONResponseString = responseConverted.asString;
         this.responseResult = data.responseTemplate;
         this.recording = false;
-        this.$announcer.set('Request received. Please edit your validation template for the request & response')
+        this.$announcer.set(`${this.$t('Request received. Please edit your validation template for the request & response')}`)
         this.step = 2;
       }
     }
@@ -529,7 +541,7 @@ export default class Recorder extends Vue {
   beautify(input: object): string {
     const beautiful = JSON.stringify(input, null, 4);
     if (beautiful.length > 4000) {
-      return beautiful.substr(0, 4000) + '\n\n...object concatenated for performance reasons'
+      return beautiful.substr(0, 4000) + `\n\n...${this.$t('object concatenated for performance reasons')}`
     }
     return beautiful
   }
@@ -723,10 +735,10 @@ export default class Recorder extends Vue {
   @Watch('JSONRequestStringValid')
   onJSONRequestStringValidChange(val: boolean) {
     if (!val) {
-      this.$announcer.set('Your JSON is invalid. Press ctrl+h to view the formatting help')
+      this.$announcer.set(`${this.$t('Your JSON is invalid. Press ctrl+h to view the formatting help')}`)
     }
     else {
-      this.$announcer.set('JSON valid')
+      this.$announcer.set(`${this.$t('JSON valid')}`)
     }
   }
 
@@ -801,10 +813,10 @@ export default class Recorder extends Vue {
   @Watch('JSONResponseStringValid')
   onJSONResponseStringValidChange(val: boolean) {
     if (!val) {
-      this.$announcer.set('Your JSON is invalid. Press ctrl+h to view the formatting help')
+      this.$announcer.set(`${this.$t('Your JSON is invalid. Press ctrl+h to view the formatting help')}`)
     }
     else {
-      this.$announcer.set('JSON valid')
+      this.$announcer.set(`${this.$t('JSON valid')}`)
     }
   }
 
@@ -849,11 +861,11 @@ export default class Recorder extends Vue {
   handleSaveEvent(e: SaveTemplateResult) {
     if (this.singleEndpointMode) {
       if (e.success) {
-        this.$emit('announcement', 'Validation template saved. Dialog closed')
+        this.$emit('announcement', this.$t('Validation template saved. Dialog closed'))
         this.show = false
       }
       else {
-        this.$emit('announcement', 'Validation template could not be saved. Dialog closed')
+        this.$emit('announcement', this.$t('Validation template could not be saved. Dialog closed'))
         this.show = false
       }
     }

@@ -1,5 +1,34 @@
 # API Validator - Prototype
 
+## 本程式提供中文支持
+
+### 安裝依賴
+
+```bash
+yarn
+```
+
+### 應用方式
+
+#### 第一 : 安裝
+
+##### 開發模式
+
+```bash
+yarn electron:serve
+```
+
+##### 生產版本
+```bash
+yarn electron:build
+```
+
+這會放程式在 `dist_electron` 的資料夾, 從那裡直接點開. Linux的話他會產生 .AppImage , Mac的話是 .dmg , Windows 是 .exe 的.
+
+#### 第二: 使用
+
+開程式之後它會請您輸入您的輸入網址跟您想要保存驗證文件的資料夾路徑（推薦您選擇您正在開發的前端或後端程式的git資料夾裡面的路徑）。 輸入資料之後您就可以開始產生驗證文件，而且產生之後您的請求跟響應會被驗證。程式裡面有更多解釋.
+
 ## Description
 
 The application asks for a backend URL you would like to send requests to, as well as a path to a folder in which your validation files should be located. It then sits as a proxy layer between your client and server in your development environment and is capable of validating request and response JSON bodies between the two according to validation files that you define.

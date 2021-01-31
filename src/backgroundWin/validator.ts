@@ -2,6 +2,29 @@ import { invalidField, validationAttemptResult, validationResult } from './../ty
 import validator from "validator";
 import { promises as fs } from 'fs';
 
+const langDefinitions = {
+  en: {
+    'Non-optional key is missing': 'Non-optional key is missing',
+    'Could not determine desired type for this key in your template. Does your template contain an empty array or object? Always-empty arrays or objects are not valid types.': 'Could not determine desired type for this key in your template. Does your template contain an empty array or object? Always-empty arrays or objects are not valid types.',
+    "Expected ": "Expected ",
+    " but received ": " but received ",
+    'Attempted to validate an object, but the item received was falsy': 'Attempted to validate an object, but the item received was falsy',
+    'Received an array, but the template is not an array': 'Received an array, but the template is not an array'
+  },
+  zh: {
+    'Non-optional key is missing': '非可選的屬性不在',
+    'Could not determine desired type for this key in your template. Does your template contain an empty array or object? Always-empty arrays or objects are not valid types.': '沒辦法確定這個屬性正確的數據類型. 您的驗證文件有寫空的array或物件嗎? 這樣不行',
+    "Expected ": "期望了 ",
+    " but received ": " 但是受到了 ",
+    'Attempted to validate an object, but the item received was falsy': '嘗試了驗證物件, 但是受到的數據是虛假的',
+    'Received an array, but the template is not an array': '收到了array, 但是驗證模板本來不是array'
+  }
+}
+
+const $t = (string: string, lang: 'zh'|'en') => {
+  return langDefinitions[lang][string]
+}
+
 const typeCheckers = {
   array: (i: unknown) => Array.isArray(i),
   uuid: (i: unknown) => typeof i === "string" && validator.isUUID(i),
@@ -52,13 +75,13 @@ function determineType(i: unknown) {
   return type;
 }
 
-function allPropertiesExist(obj: object, template: object, originalKey: string) {
+function allPropertiesExist(obj: object, template: object, originalKey: string, lang: 'zh'|'en') {
   console.log('key', originalKey, 'template', template, 'obj', obj)
   const missingFields: invalidField[] = []
   if (!obj && !originalKey.includes('?')) {
     return [{
       key: originalKey,
-      reason: 'Non-optional key is missing'
+      reason: $t('Non-optional key is missing', lang)
     }]
   }
   if (typeof obj === 'string') {
@@ -73,7 +96,7 @@ function allPropertiesExist(obj: object, template: object, originalKey: string) 
     if (!exists && !isOptional) {
       missingFields.push({
         key: originalKey ? originalKey + '.' + key : key,
-        reason: 'Non-optional key is missing'
+        reason: $t('Non-optional key is missing', lang)
       })
     }
   })
@@ -82,7 +105,8 @@ function allPropertiesExist(obj: object, template: object, originalKey: string) 
 
 function recurseThroughObject(
   obj: object | unknown[],
-  template: object | unknown[]
+  template: object | unknown[],
+  lang: 'zh'|'en'
 ) {
   const invalidFields: invalidField[] = [];
   if (Array.isArray(obj)) {
@@ -102,7 +126,7 @@ function recurseThroughObject(
           invalidFields.push({
             key: `${index}`,
             reason:
-              "Expected " + desiredType + " but received " + determineType(item)
+              $t("Expected ", lang) + desiredType + $t(" but received ", lang) + determineType(item)
           });
         }
       });
@@ -112,13 +136,13 @@ function recurseThroughObject(
       if (desiredType === 'Unknown') {
         invalidFields.push({
           key: '',
-          reason: "Could not determine desired type for this key in your template. Does your template contain an empty array or object? Always-empty arrays or objects are not valid types."
+          reason: $t("Could not determine desired type for this key in your template. Does your template contain an empty array or object? Always-empty arrays or objects are not valid types.", lang)
         })
       }
       obj.forEach((item: any, index: number) => {
         // Only fully validate the first object in arrays
         if ((desiredType === 'object' || desiredType === 'array') && index === 0) {
-          const fieldValidations = recurseThroughObject(item, template[0]);
+          const fieldValidations = recurseThroughObject(item, template[0], lang);
           fieldValidations.forEach(i => {
             const trueKey = index + "." + i.key;
             invalidFields.push({
@@ -131,7 +155,7 @@ function recurseThroughObject(
           invalidFields.push({
             key: `${index}`,
             reason:
-              "Expected " + desiredType + " but received " + determineType(item)
+            $t("Expected ", lang) + desiredType + $t(" but received ", lang) + determineType(item)
           });
         }
       });
@@ -156,7 +180,8 @@ function recurseThroughObject(
         ) {
           const fieldValidations = recurseThroughObject(
             receivedValue,
-            expectedValue
+            expectedValue,
+            lang
           );
           fieldValidations.forEach(i => {
             const trueKey = key + "." + i.key;
@@ -174,7 +199,8 @@ function recurseThroughObject(
         ) {
           const fieldValidations = recurseThroughObject(
             receivedValue,
-            expectedValue
+            expectedValue,
+            lang
           );
           fieldValidations.forEach(i => {
             const trueKey = key + "." + i.key;
@@ -225,10 +251,7 @@ function recurseThroughObject(
             invalidFields.push({
               key,
               reason:
-                "Expected " +
-                expectedValue +
-                " but received " +
-                determineType(receivedValue)
+              $t("Expected ", lang) + expectedValue + $t(" but received ", lang) +                determineType(receivedValue)
             });
           }
         }
@@ -241,14 +264,15 @@ function recurseThroughObject(
       }
     });
   }
-  const res = allPropertiesExist(obj, template, '')
+  const res = allPropertiesExist(obj, template, '', lang)
   res.forEach(i => invalidFields.push(i))
   return invalidFields;
 }
 
 function checkObject(
   obj: object,
-  template: object | object[]
+  template: object | object[],
+  lang: 'zh'|'en'
 ): validationResult {
   const invalidFields: invalidField[] = [];
 
@@ -257,7 +281,7 @@ function checkObject(
       valid: false,
       invalidFields: [{
         key: '',
-        reason: 'Attempted to validate an object, but the item received was falsy'
+        reason: $t('Attempted to validate an object, but the item received was falsy', lang)
       }]
     };
   }
@@ -267,12 +291,12 @@ function checkObject(
         valid: false,
         invalidFields: [{
           key: '',
-          reason: 'Received an array, but the template is not an array'
+          reason: $t('Received an array, but the template is not an array', lang)
         }]
       };
     }
     obj.forEach((i, index) => {
-      const results = recurseThroughObject(i, template[0]);
+      const results = recurseThroughObject(i, template[0], lang);
       results.forEach(item => {
         invalidFields.push({
           key: index + "." + item.key,
@@ -282,7 +306,7 @@ function checkObject(
     });
   }
   else if (typeof obj === "object") {
-    const results = recurseThroughObject(obj, template);
+    const results = recurseThroughObject(obj, template, lang);
     results.forEach(i => {
       invalidFields.push(i);
     });
@@ -300,14 +324,15 @@ async function validate(
   type: 'request' | 'response',
   method: string,
   pathToValidation: string,
-  fullEndpointIncludingVariables: string
+  fullEndpointIncludingVariables: string,
+  lang: 'zh'|'en'
 ): Promise<validationAttemptResult> {
   if (pathToValidation) {
     try {
       const template = __non_webpack_require__(
         pathToValidation + endpoint + ".js"
       );
-      return { couldBeValidated: true, result: checkObject(body, template[type][method][fullEndpointIncludingVariables]) };
+      return { couldBeValidated: true, result: checkObject(body, template[type][method][fullEndpointIncludingVariables], lang) };
     }
     catch (e) {
       console.log(e);

@@ -43,6 +43,7 @@ let isRecording = false;
 let isRecordingAll = false;
 let recordingEndpoint = ''
 let recordingMethod = ''
+let lang: 'zh'|'en' = 'en'
 
 const allTemplates = {}
 
@@ -157,6 +158,13 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
         event: 'save-validation'
       })
       getAllTemplates(validationPath);
+      break
+    case 'change-lang':
+      lang = data.data.lang
+      ipc.send('response', {
+        success: true,
+        event: 'change-lang'
+      })
       break
     default:
       break;
@@ -324,7 +332,8 @@ app.all("*", async (req, res) => {
           'request',
           req.method,
           validationPath,
-          reqType
+          reqType,
+          lang
         );
         if (validationResult.couldBeValidated) {
           if (validationResult.result && !validationResult.result.valid) {
@@ -386,7 +395,8 @@ app.all("*", async (req, res) => {
         'response',
         req.method,
         validationPath,
-        reqType
+        reqType,
+        lang
       )
 
       if (responseValidation.couldBeValidated) {

@@ -6,16 +6,30 @@
         <v-card width="400" class="mt-10 black" rounded>
           <v-card-title>
             <span class="mainTitle">
-              Enter your dev backend URL
+              {{ $t('Enter your dev backend URL') }}
             </span>
+            <br>
+            <v-row dense align="center">
+              <v-col>
+            <v-btn-toggle v-model="lang">
+              <v-btn value="en">
+                {{ 'English' }}<span class="emoji">🇦🇺</span>
+              </v-btn>
+              <v-btn value="zh">
+                {{ '中文' }}<span class="emoji">🇹🇼</span>
+              </v-btn>
+            </v-btn-toggle>
+
+              </v-col>
+            </v-row>
           </v-card-title>
           <v-card-text>
             <v-row dense align="center" justify="center">
               <v-col cols="12">
                 <v-text-field
                   v-model="url"
-                  placeholder="Enter URL"
-                  label="Your backend URL"
+                  :placeholder="$t('Enter URL')"
+                  :label="$t('Your backend URL')"
                   outlined
                   :rules="urlRules"
                   color="primary"
@@ -25,8 +39,8 @@
               <v-col cols="12">
                 <v-text-field
                   v-model="path"
-                  label="Path to your validation files"
-                  placeholder="Full path e.g. /home/user/project/validators/"
+                  :label="$t('Path to your validation files')"
+                  :placeholder="$t('Full path e.g. /home/user/project/validators/')"
                   outlined
                   :rules="pathRules"
                   color="primary"
@@ -34,7 +48,7 @@
               </v-col>
               <v-col cols="12">
                 <v-subheader>
-                  Be sure to point your client to http://localhost:3000
+                  {{ $t('Be sure to point your client to http://localhost:3000') }}
                 </v-subheader>
               </v-col>
               <v-col cols="12">
@@ -46,7 +60,7 @@
                   :disabled="!valid"
                   :aria-disabled="!valid"
                 >
-                  Continue
+                  {{ $t('Continue') }}
                 </v-btn>
               </v-col>
             </v-row>
@@ -59,14 +73,17 @@
 
 <script lang="ts">
 import { Component, Vue, Watch } from "vue-property-decorator";
+import moment from 'moment';
 import { IPCHandler } from "../IPCHandler";
 import { Action, Getter } from "vuex-class";
 import type { ActionMethod } from "vuex";
+import { LocaleMessages } from 'vue-i18n';
 
 @Component
 export default class Main extends Vue {
   url = "";
   path = "";
+  lang = 'en';
 
   @Getter("handler") handler!: IPCHandler;
   @Action("setPath") setPath!: ActionMethod;
@@ -74,30 +91,48 @@ export default class Main extends Vue {
 
   mounted() {
     setTimeout(() => {
+      this.getLang();
       this.getURL();
     }, 200);
     setTimeout(() => {
-      this.$announcer.set('API Validation application loaded. Please enter your backend URL and path to validation folder, then press the continue button.')
+      this.$announcer.set(`${this.$t('API Validation application loaded. Please enter your backend URL and path to validation folder, then press the continue button.')}`)
     }, 3000)
   }
 
   urlRules = [
-    (v: string): boolean | string => {
+    (v: string): boolean | string | LocaleMessages => {
       return (
         (!!v &&
           /((http|https):\/\/)?[a-zA-Z0-9.-_]{2,256}(:[0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])?(\/)$/.test(
             v
           )) ||
-        "Invalid URL"
+        this.$t("Invalid URL")
       );
     },
   ];
 
   pathRules = [
-    (v: string): boolean | string => {
-      return (!!v && /^(([a-zA-Z]{1}:\\)|\/)([a-zA-Z_-\s0-9.\]\\\/]+)(\\|\/)$/.test(v)) || "Invalid path"
+    (v: string): boolean | string | LocaleMessages => {
+      return (!!v && /^(([a-zA-Z]{1}:\\)|\/)([a-zA-Z_-\s0-9.\]\\\/]+)(\\|\/)$/.test(v)) || this.$t("Invalid path")
     }
   ]
+
+  getLang() {
+    const localLang = localStorage.getItem('lang')
+    if (localLang && ['en', 'zh'].includes(localLang)) {
+      this.lang = localLang
+    }
+  }
+
+  @Watch('lang')
+  async setLang(val: 'en'|'zh') {
+    moment.locale(val)
+    this.$i18n.locale = val
+    await this.handler.send('change-lang', {
+      event: 'change-lang',
+      lang: val
+    })
+  }
 
   async getURL() {
     const response = await this.handler.send("get-backend-url");
@@ -135,10 +170,10 @@ export default class Main extends Vue {
   @Watch('valid')
   onValidChanged(val: boolean) {
     if (val) {
-      this.$announcer.set('You can now click the continue button')
+      this.$announcer.set(`${this.$t('You can now click the continue button')}`)
     }
     else {
-      this.$announcer.set('Continue button disabled. Please fill out the correct fields')
+      this.$announcer.set(`${this.$t('Continue button disabled. Please fill out the correct fields')}`)
     }
   }
 
@@ -152,5 +187,8 @@ export default class Main extends Vue {
 <style scoped lang="scss">
 .mainTitle {
   width: 100%;
+}
+.emoji {
+  font-family: apple color emoji,segoe ui emoji,noto color emoji,android emoji,emojisymbols,emojione mozilla,twemoji mozilla,segoe ui symbol
 }
 </style>
