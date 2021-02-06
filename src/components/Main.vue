@@ -13,10 +13,10 @@
               <v-col>
             <v-btn-toggle v-model="lang">
               <v-btn value="en">
-                {{ 'English' }}<span class="emoji">🇦🇺</span>
+                {{ 'English' }}<span class="emoji" role="img" aria-label="australia">🇦🇺</span>
               </v-btn>
               <v-btn value="zh">
-                {{ '中文' }}<span class="emoji">🇹🇼</span>
+                {{ '中文' }}<span class="emoji" role="img" aria-label="taiwan">🇹🇼</span>
               </v-btn>
             </v-btn-toggle>
 

@@ -7,7 +7,8 @@ import app from "./index";
 
 try {
   app.listen(3000);
-} catch (e) {
+}
+catch (e) {
   console.log("Port 3000 busy");
 }
 

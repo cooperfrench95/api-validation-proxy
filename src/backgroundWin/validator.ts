@@ -106,7 +106,8 @@ function allPropertiesExist(obj: object, template: object, originalKey: string, 
 function recurseThroughObject(
   obj: object | unknown[],
   template: object | unknown[],
-  lang: 'zh'|'en'
+  lang: 'zh'|'en',
+  arrayCheckLimit: number,
 ) {
   const invalidFields: invalidField[] = [];
   if (Array.isArray(obj)) {
@@ -140,9 +141,9 @@ function recurseThroughObject(
         })
       }
       obj.forEach((item: any, index: number) => {
-        // Only fully validate the first object in arrays
-        if ((desiredType === 'object' || desiredType === 'array') && index === 0) {
-          const fieldValidations = recurseThroughObject(item, template[0], lang);
+        // Only fully validate up to the [arrayCheckLimit]th object in arrays
+        if ((desiredType === 'object' || desiredType === 'array') && (index - 1) < arrayCheckLimit) {
+          const fieldValidations = recurseThroughObject(item, template[0], lang, arrayCheckLimit);
           fieldValidations.forEach(i => {
             const trueKey = index + "." + i.key;
             invalidFields.push({
@@ -181,7 +182,8 @@ function recurseThroughObject(
           const fieldValidations = recurseThroughObject(
             receivedValue,
             expectedValue,
-            lang
+            lang,
+            arrayCheckLimit
           );
           fieldValidations.forEach(i => {
             const trueKey = key + "." + i.key;
@@ -200,7 +202,8 @@ function recurseThroughObject(
           const fieldValidations = recurseThroughObject(
             receivedValue,
             expectedValue,
-            lang
+            lang,
+            arrayCheckLimit
           );
           fieldValidations.forEach(i => {
             const trueKey = key + "." + i.key;
@@ -251,7 +254,7 @@ function recurseThroughObject(
             invalidFields.push({
               key,
               reason:
-              $t("Expected ", lang) + expectedValue + $t(" but received ", lang) +                determineType(receivedValue)
+              $t("Expected ", lang) + expectedValue + $t(" but received ", lang) + determineType(receivedValue)
             });
           }
         }
@@ -272,7 +275,8 @@ function recurseThroughObject(
 function checkObject(
   obj: object,
   template: object | object[],
-  lang: 'zh'|'en'
+  lang: 'zh'|'en',
+  arrayCheckLimit: number,
 ): validationResult {
   const invalidFields: invalidField[] = [];
 
@@ -296,7 +300,7 @@ function checkObject(
       };
     }
     obj.forEach((i, index) => {
-      const results = recurseThroughObject(i, template[0], lang);
+      const results = recurseThroughObject(i, template[0], lang, arrayCheckLimit);
       results.forEach(item => {
         invalidFields.push({
           key: index + "." + item.key,
@@ -306,7 +310,7 @@ function checkObject(
     });
   }
   else if (typeof obj === "object") {
-    const results = recurseThroughObject(obj, template, lang);
+    const results = recurseThroughObject(obj, template, lang, arrayCheckLimit);
     results.forEach(i => {
       invalidFields.push(i);
     });
@@ -325,14 +329,15 @@ async function validate(
   method: string,
   pathToValidation: string,
   fullEndpointIncludingVariables: string,
-  lang: 'zh'|'en'
+  lang: 'zh'|'en',
+  arrayCheckLimit: number
 ): Promise<validationAttemptResult> {
   if (pathToValidation) {
     try {
       const template = __non_webpack_require__(
         pathToValidation + endpoint + ".js"
       );
-      return { couldBeValidated: true, result: checkObject(body, template[type][method][fullEndpointIncludingVariables], lang) };
+      return { couldBeValidated: true, result: checkObject(body, template[type][method][fullEndpointIncludingVariables], lang, arrayCheckLimit) };
     }
     catch (e) {
       console.log(e);
@@ -450,11 +455,11 @@ export { validate, createValidationTemplate, saveValidationTemplate };
 // // * Frontend in general should delete requests from the stack when they get over a certain amount
 // // * Write readme and caveat document
 
-// * Create settings menu for performance limitations
-// Current performance limitations:
-// Only 100 requests kept in memory in frontend
-// Only first item in array is parsed
-// Max string length of 4000 for JSON responses being displayed
+// // * Create settings menu for performance limitations
+// // Current performance limitations:
+// // Only 100 requests kept in memory in frontend
+// // Only first item in array is parsed
+// // Max string length of 4000 for JSON responses being displayed
 
 // // * App should remember your target url and path
 // // Add this in local storage
@@ -466,3 +471,8 @@ export { validate, createValidationTemplate, saveValidationTemplate };
 // Bug fixes: Handling empty arrays properly, strings with length params
 // Added option to mass-create endpoint templates
 // Endpoints can now have differing paths, such as /employees or /employees/:uuid
+
+// Handle different headers?
+// // Offer ability to view and edit your existing templates inline?
+// // Export in a markdown format?
+// Handle recursive objects?

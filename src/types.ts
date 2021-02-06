@@ -49,6 +49,7 @@ export type IPCHandlerResponse<T> = {
   event: T;
   url?: string;
   path?: string;
+  templates?: object;
 };
 
 export type validationAttemptResult = {
@@ -105,4 +106,52 @@ export interface SaveTemplateCommand {
 export interface SaveTemplateResult {
   event: 'save-validation';
   success: boolean;
+}
+
+export interface EndpointContent {
+  name: string;
+  content: object;
+}
+
+export type unStringifiedContent = {
+  request: {
+    GET?: {
+      [s: string]: string;
+    };
+    PUT?: {
+      [s: string]: string;
+    };
+    POST?: {
+      [s: string]: string;
+    };
+    PATCH?: {
+      [s: string]: string;
+    };
+    DELETE?: {
+      [s: string]: string;
+    };
+  };
+  response?: {
+    GET?: {
+      [s: string]: string;
+    };
+    PUT?: {
+      [s: string]: string;
+    };
+    POST?: {
+      [s: string]: string;
+    };
+    PATCH?: {
+      [s: string]: string;
+    };
+    DELETE?: {
+      [s: string]: string;
+    };
+  };
+};
+
+export interface SelectedEndpointContent {
+  name: string;
+  content: string;
+  unStringifiedContent: unStringifiedContent;
 }

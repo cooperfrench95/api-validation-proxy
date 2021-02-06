@@ -243,51 +243,7 @@
         </v-row>
       </v-card-text>
     </v-card>
-    <v-dialog v-if="showFormattingHelp" v-model="showFormattingHelp" width="600">
-      <v-card role="dialog" width="600">
-        <v-card-title tabindex="0">
-          {{ $t('Formatting help') }}
-        </v-card-title>
-        <v-card-text>
-          <v-row dense class="text-left">
-            <v-col tabindex="0" cols="12">
-              {{ $t('The following denotes the formatting required when editing your validation template as JSON.') }}
-            </v-col>
-            <v-col tabindex="0" cols="12">
-              <ul>
-                <li>{{ $t('Template must be valid JSON.') }}</li>
-                <li>{{ $t('Key names cannot inherently contain question marks or colons. Adding a question mark to the end of a key denotes that it is optional, i.e. it may be undefined or not present on the object at all.') }}</li>
-                <li>{{ $t('When denoting a type, the following are valid:') }}
-                  <ul>
-                    <li v-for="(type, index) in typeOptions" :key="index">
-                      <code>{{ type }}</code>
-                    </li>
-                  </ul>
-                </li>
-                <li>{{ $t('UUIDs are expected to be v4 UUIDs') }}.</li>
-                <li>{{ ('For non-primitive types (objects and arrays), instead of denoting the type with a string as above (e.g. ') }}<code>{{ $t('"id": "uuid"') }}</code>{{ $t(') you should denote the type literally, i.e. if id is an object it would be ') }}<code>{{ $t('"id": { (..your object here) ..}') }}</code></li>
-                <li>{{ $t('Arrays must contain something that indicates what the array should contain. If the array is to contain a primitive type, for instance if it is an array of numbers, you can write an array containing the string containing that type: ') }}<code>"ids": ["number"]</code>{{ $t('. If the array is to contain non-primitive types, then as above, denote those directly. For example: ') }}<code>"myObjectArray": [{ "id": uuid", "name": "string" }]</code></li>
-                <li>{{ ('You may combine multiple primitive types using the | operator. For instance, if ') }}<code>employeeID</code> {{ $t('can be either a uuid or a number, you could write: ') }}<code>"employeeID": "uuid|number"</code></li>
-                <li>{{ $t('Strings can have a length property to indicate the desired length of the string. See the following examples:') }}
-                  <ul>
-                    <li>{{ $t('String with length more than 0: ') }}<code>string&length>0</code></li>
-                    <li>{{ $t('String with length less than 10: ') }}<code>{{ 'string&length<10' }}</code></li>
-                    <li>{{ $t('String with length more than or equal to 10: ') }}<code>string&length>=10</code></li>
-                    <li>{{ $t('String with length less than or equal to 10: ') }}<code>string&length<=10</code></li>
-                    <li>{{ $t('String with length exactly 4: ') }}<code>string&length=4</code></li>
-                  </ul>
-                </li>
-              </ul>
-            </v-col>
-          </v-row>
-        </v-card-text>
-        <v-card-actions>
-          <v-btn outlined block color="primary" @click.stop="showFormattingHelp = false" aria-label="exit help dialog">
-            {{ $t('Got it!') }}
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <formatting-help :show="showFormattingHelp" @close="showFormattingHelp = false" />
     <v-dialog v-if="viewingDetails" :value="true" width="600">
       <v-card width="600">
         <v-card-title>
@@ -335,7 +291,7 @@
                       </tbody>
                     </v-simple-table>
                     <p class="cardTextClass">
-                      {{ beautify(viewingDetails.request.data) }}
+                      {{ beautify(viewingDetails.request.data, $t, JSONDisplayLimit, true) }}
                     </p>
                   </v-col>
                 </v-expansion-panel-content>
@@ -363,7 +319,7 @@
                       </tbody>
                     </v-simple-table>
                     <p class="cardTextClass">
-                      {{ beautify(viewingDetails.response.data) }}
+                      {{ beautify(viewingDetails.response.data, $t, JSONDisplayLimit, true) }}
                     </p>
                   </v-col>
                 </v-expansion-panel-content>
@@ -380,28 +336,24 @@
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import { IPCHandler } from "../IPCHandler";
 import { Getter } from "vuex-class";
-import { ConversionResult, LineDescription, RecordingResult, SaveTemplateResult, IPCHandlerResponse } from "@/types";
+import { LineDescription, RecordingResult, SaveTemplateResult, IPCHandlerResponse } from "@/types";
+import FormattingHelp from './FormattingHelp.vue';
+import { typeOptions, parseOutType, validateType, convertBackToObject, beautify, getLinesForDisplay } from './functions';
 
-@Component
+@Component({
+  components: {
+    FormattingHelp
+  },
+})
 export default class Recorder extends Vue {
   @Prop() readonly value!: boolean;
+  @Prop() readonly JSONDisplayLimit!: number;
   @Getter("handler") handler!: IPCHandler;
 
   endpointName = "";
   method = "";
   methodOptions = ["GET", "POST", "PUT", "PATCH", "DELETE"];
-  typeOptions = [
-    "uuid",
-    "timestamp",
-    "string",
-    "null",
-    "mimetype",
-    "locale",
-    "jwt",
-    "email",
-    "number",
-    "boolean",
-  ];
+  readonly typeOptions = typeOptions
 
   recording = false;
   showFormattingHelp = false;
@@ -413,13 +365,16 @@ export default class Recorder extends Vue {
   JSONResponseString = "";
   viewingDetails: RecordingResult|null = null;
   searchString = "";
-
   receivedRequestsForBulkMode: RecordingResult[] = [];
-
   requestResult: object | string[] | object[] | null = null;
   modifiableRequestTypings: LineDescription[] = [];
   responseResult: object | string[] | object[] | null = null;
   modifiableResponseTypings: LineDescription[] = [];
+  parseOutType = parseOutType;
+  validateType = validateType;
+  convertBackToObject = convertBackToObject;
+  getLinesForDisplay = getLinesForDisplay;
+  beautify = beautify;
 
   mounted() {
     this.handler.on("recording", this.handleSuccessfulRecording);
@@ -502,12 +457,14 @@ export default class Recorder extends Vue {
       const ignoreRequestPortion = (this.method === 'GET' || this.method === 'DELETE')
       if (typeof data.requestTemplate === "object" && data.requestTemplate) {
         this.modifiableRequestTypings = this.getLinesForDisplay(
-          data.requestTemplate
+          data.requestTemplate,
+          this.$t
         );
       }
       if (typeof data.responseTemplate === "object" && data.responseTemplate) {
         this.modifiableResponseTypings = this.getLinesForDisplay(
-          data.responseTemplate
+          data.responseTemplate,
+          this.$t
         );
       }
       if (
@@ -515,10 +472,10 @@ export default class Recorder extends Vue {
         (this.modifiableRequestTypings.length || ignoreRequestPortion)
       ) {
         if (!ignoreRequestPortion) {
-          const converted = this.convertBackToObject(this.modifiableRequestTypings);
+          const converted = this.convertBackToObject(this.modifiableRequestTypings, this.$t);
           this.JSONRequestString = converted.asString;
         }
-        const responseConverted = this.convertBackToObject(this.modifiableResponseTypings);
+        const responseConverted = this.convertBackToObject(this.modifiableResponseTypings, this.$t);
         this.JSONResponseString = responseConverted.asString;
         this.responseResult = data.responseTemplate;
         this.recording = false;
@@ -526,9 +483,9 @@ export default class Recorder extends Vue {
         this.step = 2;
       }
     }
-    else if (data && data.response
+    else if (data && data.response &&
       // && data.response.statusCode < 400
-      && this.receivedRequestsForBulkMode.findIndex(i => i.endpoint === data.endpoint && i.method === data.method) === -1
+      this.receivedRequestsForBulkMode.findIndex(i => i.endpoint === data.endpoint && i.method === data.method) === -1
     ) {
       this.receivedRequestsForBulkMode.push(data)
     }
@@ -538,183 +495,11 @@ export default class Recorder extends Vue {
     this.viewingDetails = request
   }
 
-  beautify(input: object): string {
-    const beautiful = JSON.stringify(input, null, 4);
-    if (beautiful.length > 4000) {
-      return beautiful.substr(0, 4000) + `\n\n...${this.$t('object concatenated for performance reasons')}`
-    }
-    return beautiful
-  }
-
-  getLinesForDisplay(input: object | object[]): LineDescription[] {
-    const beautified = this.beautify(input);
-    const split = beautified.split("\n");
-    const typesParsed = split.map((i) => {
-      return this.parseOutType(i);
-    });
-    return typesParsed;
-  }
-
-  removeWhitespaceNotInKey(input: string, optional: boolean): string {
-    const firstQuote = input.indexOf('"');
-    const secondQuote = input.indexOf('"', firstQuote + 1);
-    let savedKey = input.substring(firstQuote + 1, secondQuote);
-    if (optional && savedKey.indexOf("?") !== savedKey.length - 1) {
-      savedKey = savedKey + "?";
-    }
-    const noWhiteSpace = input.replace(/ /g, "");
-    const firstQuoteInNoWhiteSpace = noWhiteSpace.indexOf('"');
-    const secondQuoteInNoWhiteSpace = noWhiteSpace.indexOf(
-      '"',
-      firstQuoteInNoWhiteSpace + 1
-    );
-    const modifiedKey = noWhiteSpace.substring(
-      firstQuoteInNoWhiteSpace + 1,
-      secondQuoteInNoWhiteSpace
-    );
-    return noWhiteSpace.split(modifiedKey).join(savedKey);
-  }
-
-  parseOutType(s: string): LineDescription {
-    const splitByColon = s.split(":");
-    if (splitByColon.length < 2) {
-      const noWhiteSpace = s.replace(/ /g, "").replace(/,/g, "");
-      if (["{", "}", "[", "]"].includes(noWhiteSpace)) {
-        // Line is just for display purposes
-        return {
-          display: s,
-          optional: false,
-        };
-      }
-      else {
-        // Type of thing inside array when not object, e.g. "number"
-        return {
-          display: s,
-          type: s.replace(/"/g, "").replace(/ /g, "").replace(/,/g, ""),
-          optional: false,
-        };
-      }
-    }
-    let fieldName = splitByColon[0] + ": ";
-    let optional = false;
-    if (splitByColon[0].indexOf("?") === splitByColon[0].length - 2) {
-      optional = true;
-      fieldName = fieldName.replace('?"', '"');
-    }
-    let displayAfter = ",";
-    const type = splitByColon[1]
-      .replace(/"/g, "")
-      .replace(/ /g, "")
-      .replace(/,/g, "");
-    let actualType = "";
-    switch (type) {
-      case "[":
-        actualType = "array";
-        displayAfter = "[";
-        break;
-      case "[]":
-        actualType = "array";
-        displayAfter = "[],";
-        break;
-      case "uuid":
-        actualType = "uuid";
-        break;
-      case "timestamp":
-        actualType = "timestamp";
-        break;
-      case "string":
-        actualType = "string";
-        break;
-      case "null":
-        actualType = "null";
-        break;
-      case "mimetype":
-        actualType = "mimetype";
-        break;
-      case "{":
-        actualType = "object";
-        displayAfter = "{";
-        break;
-      case "{}":
-        actualType = "object";
-        displayAfter = "{},";
-        break;
-      case "locale":
-        actualType = "locale";
-        break;
-      case "jwt":
-        actualType = "jwt";
-        break;
-      case "email":
-        actualType = "email";
-        break;
-      case "number":
-        actualType = "number";
-        break;
-      case "boolean":
-        actualType = "boolean";
-        break;
-      default:
-        actualType = type;
-        break;
-    }
-    return {
-      display: fieldName,
-      type: actualType,
-      displayAfter,
-      optional,
-    };
-  }
-
-  validateType(input: string): boolean {
-    console.log(input, 'input')
-    try {
-      const allowedTypes = [...this.typeOptions, 'array', 'object']
-      const operators = ['<', '>', '=']
-      const longOperators = ['>=', '<=']
-      if (allowedTypes.includes(input)) {
-        return true
-      }
-      const splitByOr = input.split('|')
-      for (let i = 0; i < splitByOr.length; i += 1) {
-        const current = splitByOr[i]
-        if (allowedTypes.includes(current)) {
-          continue
-        }
-        if (!current.includes('string&length')) {
-          console.log('fail 1')
-          return false
-        }
-        if (current.indexOf('string&length') === 0 && current.length > 13) {
-          if (longOperators.includes(current.substring(13, 15))) {
-            const num = current.substring(15, current.length)
-            if (!isNaN(Number(num)) && Number(num) > 0) {
-              continue
-            }
-          }
-          else if (operators.includes(current[13])) {
-            const num = current.substring(14, current.length)
-            if (!isNaN(Number(num)) && Number(num) > 0) {
-              continue
-            }
-          }
-        }
-        console.log('fail 2')
-        return false
-      }
-      return true
-    }
-    catch (e) {
-      console.error(e)
-      return false
-    }
-  }
-
   get JSONRequestStringValid() {
     let valid = false;
     try {
       const object = JSON.parse(this.JSONRequestString);
-      const lineByLine = this.getLinesForDisplay(object)
+      const lineByLine = this.getLinesForDisplay(object, this.$t)
       for (let i = 0; i < lineByLine.length; i += 1) {
         const line = lineByLine[i]
         if (line.type) {
@@ -746,7 +531,7 @@ export default class Recorder extends Vue {
     let valid = false;
     try {
       const object = JSON.parse(this.JSONResponseString);
-      const lineByLine = this.getLinesForDisplay(object)
+      const lineByLine = this.getLinesForDisplay(object, this.$t)
       for (let i = 0; i < lineByLine.length; i += 1) {
         const line = lineByLine[i]
         if (line.type) {
@@ -781,32 +566,35 @@ export default class Recorder extends Vue {
     const ignoreRequestPortion = (this.method === 'GET' || this.method === 'DELETE')
     if (!ignoreRequestPortion) {
       const object = JSON.parse(this.JSONRequestString)
-      this.modifiableRequestTypings = this.getLinesForDisplay(object)
+      this.modifiableRequestTypings = this.getLinesForDisplay(object, this.$t)
     }
   }
 
   convertRequestArrayToString() {
     if (!(this.method === 'GET' || this.method === 'DELETE')) {
-      const converted = this.convertBackToObject(this.modifiableRequestTypings);
+      const converted = this.convertBackToObject(this.modifiableRequestTypings, this.$t);
       this.JSONRequestString = converted.asString;
       this.modifiableRequestTypings = this.getLinesForDisplay(
-        converted.asObject
+        converted.asObject,
+        this.$t
       );
     }
   }
 
   convertResponseStringToArray() {
     const object = JSON.parse(this.JSONResponseString)
-    this.modifiableResponseTypings = this.getLinesForDisplay(object)
+    this.modifiableResponseTypings = this.getLinesForDisplay(object, this.$t)
   }
 
   convertResponseArrayToString() {
     const converted = this.convertBackToObject(
-      this.modifiableResponseTypings
+      this.modifiableResponseTypings,
+      this.$t
     );
     this.JSONResponseString = converted.asString;
     this.modifiableResponseTypings = this.getLinesForDisplay(
-      converted.asObject
+      converted.asObject,
+      this.$t
     );
   }
 
@@ -869,38 +657,6 @@ export default class Recorder extends Vue {
         this.show = false
       }
     }
-  }
-
-  convertBackToObject(input: LineDescription[]): ConversionResult {
-    let returnItem = "";
-    input.forEach((item) => {
-      if (item.type) {
-        let addString = this.removeWhitespaceNotInKey(
-          item.display,
-          item.optional
-        );
-        addString += `${
-          ["object", "array"].includes(item.type) ? `` : `"${item.type}"`
-        }${item.displayAfter}`;
-        returnItem += addString;
-      }
-      else {
-        returnItem += item.display.replace(/ /g, "");
-      }
-    });
-    let unnecessaryCommasRemoved = "";
-    for (let i = 0; i < returnItem.length; i += 1) {
-      if (returnItem[i] === "," && returnItem[i + 1] !== '"') {
-        continue;
-      }
-      unnecessaryCommasRemoved += returnItem[i];
-    }
-    const parsed = JSON.parse(unnecessaryCommasRemoved);
-    unnecessaryCommasRemoved = this.beautify(parsed);
-    return {
-      asObject: parsed,
-      asString: unnecessaryCommasRemoved,
-    };
   }
 }
 </script>

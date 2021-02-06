@@ -13,7 +13,6 @@ const getDefaultLanguage = () => {
   moment.locale(lang)
   return lang
 }
-const a = ''
 
 // export i18n instance
 export default new VueI18n({

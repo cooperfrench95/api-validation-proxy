@@ -9,7 +9,8 @@ if (process.env.IS_ELECTRON) {
   isWorker = require("electron").remote.getCurrentWindow().id > 1;
   if (isWorker) {
     Main = () => import("../backgroundWin/entry.vue");
-  } else {
+  }
+  else {
     Main = () => import("../components/Main.vue");
   }
 }

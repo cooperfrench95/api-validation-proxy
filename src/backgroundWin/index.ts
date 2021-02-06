@@ -43,32 +43,45 @@ let isRecording = false;
 let isRecordingAll = false;
 let recordingEndpoint = ''
 let recordingMethod = ''
+let arrayCheckLimit = 1
 let lang: 'zh'|'en' = 'en'
 
 const allTemplates = {}
 
-function getAllTemplates(path: string) {
+function getAllTemplates(path: string, grabFileContents = false) {
   const contents = {}
-  fs.readdir(path, (err, files) => {
-    if (err) {
-      console.log(err)
-    }
+  const contentsForResolve = {}
+  return new Promise((resolve, reject) => {
+    fs.readdir(path, (err, files) => {
+      if (err) {
+        console.log(err)
+      }
 
-    files.forEach(file => {
-      contents[file] = __non_webpack_require__(path + file)
-      const noExtension = file.replace('.js', '')
-      allTemplates[noExtension] = []
-      Object.values(contents[file].response).forEach(method => {
-        if (typeof method === 'object' && method) {
-          Object.keys(method).forEach(fullPath => {
-            allTemplates[noExtension].push(fullPath)
-          })
+      files.forEach(file => {
+        contents[file] = __non_webpack_require__(path + file)
+        const noExtension = file.replace('.js', '')
+        allTemplates[noExtension] = []
+        Object.values(contents[file].response).forEach(method => {
+          if (typeof method === 'object' && method) {
+            Object.keys(method).forEach(fullPath => {
+              allTemplates[noExtension].push(fullPath)
+            })
+          }
+        })
+        if (grabFileContents) {
+          contentsForResolve[noExtension] = { ...contents[file] }
         }
+        delete contents[file]
       })
-      delete contents[file]
+      if (!grabFileContents) {
+        resolve(allTemplates)
+      }
+      else {
+        resolve(contentsForResolve)
+      }
     })
+    console.log('allTemplates', allTemplates)
   })
-  console.log('allTemplates', allTemplates)
 }
 
 // Determines whether a request should be handled by a particular handler based on its URL path. For instance, GET /employees is different to GET /employees/:uuid
@@ -146,6 +159,7 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
         success: true,
         event: 'stop-recording-all-endpoints'
       })
+      break
     case "save-validation":
       ipc.send('response', {
         success: await saveValidationTemplate(
@@ -164,6 +178,21 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
       ipc.send('response', {
         success: true,
         event: 'change-lang'
+      })
+      break
+    case 'arrayCheckLimit':
+      arrayCheckLimit = data.data.value
+      ipc.send('response', {
+        event: 'arrayCheckLimit',
+        success: true
+      })
+      break
+    case 'getAllTemplates':
+      // eslint-disable-next-line no-case-declarations
+      const templateFiles = await getAllTemplates(validationPath, true)
+      ipc.send('response', {
+        event: 'getAllTemplates',
+        templates: templateFiles
       })
       break
     default:
@@ -312,7 +341,9 @@ app.all("*", async (req, res) => {
       // Make our response to the client the same as the response we received from the server
       // Headers
       Object.keys(response.headers).forEach(key => {
-        res.set(key, response.headers[key]);
+        if (key !== "transfer-encoding") {
+          res.set(key, response.headers[key]);
+        }
       });
 
       // Status code
@@ -333,7 +364,8 @@ app.all("*", async (req, res) => {
           req.method,
           validationPath,
           reqType,
-          lang
+          lang,
+          arrayCheckLimit
         );
         if (validationResult.couldBeValidated) {
           if (validationResult.result && !validationResult.result.valid) {
@@ -342,7 +374,6 @@ app.all("*", async (req, res) => {
           }
         }
       }
-
 
       const requestForUIThread: IncomingRequest = {
         event: "new-request",
@@ -396,7 +427,8 @@ app.all("*", async (req, res) => {
         req.method,
         validationPath,
         reqType,
-        lang
+        lang,
+        arrayCheckLimit
       )
 
       if (responseValidation.couldBeValidated) {
