@@ -77,7 +77,6 @@ function determineType(i: unknown) {
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 function allPropertiesExist(obj: object, template: object, originalKey: string, lang: 'zh'|'en') {
-  console.log('key', originalKey, 'template', template, 'obj', obj)
   const missingFields: invalidField[] = []
   if (!obj && !originalKey.includes('?')) {
     return [{
@@ -118,14 +117,6 @@ function recurseThroughObject(
     if (typeof desiredType === "string") {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       obj.forEach((item: any, index: number) => {
-        // const fieldValidations = recurseThroughObject(item, template[0]);
-        // fieldValidations.forEach(i => {
-        //   const trueKey = index + "." + i.key;
-        //   invalidFields.push({
-        //     key: trueKey,
-        //     reason: i.reason
-        //   });
-        // });
         if (!typeCheckers[desiredType](item)) {
           invalidFields.push({
             key: `${index}`,
@@ -449,35 +440,3 @@ async function saveValidationTemplate(
 }
 
 export { validate, createValidationTemplate, saveValidationTemplate };
-
-// TODOs
-// * add user-defined functions to templates
-// // * Handle different routes on the same endpoint e.g. /employees/:id and also params e.g. ?all=true
-// * What about recursive objects? Currently not supported
-// // * If get, ignore request body
-// // * Handle large arrays - check first index, then just check the rest for types?
-// // * The frontend UI cannot handle rendering a massive array, even if you don't validate the whole thing
-// // * Frontend in general should delete requests from the stack when they get over a certain amount
-// // * Write readme and caveat document
-
-// // * Create settings menu for performance limitations
-// // Current performance limitations:
-// // Only 100 requests kept in memory in frontend
-// // Only first item in array is parsed
-// // Max string length of 4000 for JSON responses being displayed
-
-// // * App should remember your target url and path
-// // Add this in local storage
-
-// // * Bug: Expected string & length > 10 but received string
-// // Fix bug
-
-// Remembers local storage
-// Bug fixes: Handling empty arrays properly, strings with length params
-// Added option to mass-create endpoint templates
-// Endpoints can now have differing paths, such as /employees or /employees/:uuid
-
-// Handle different headers?
-// // Offer ability to view and edit your existing templates inline?
-// // Export in a markdown format?
-// Handle recursive objects?

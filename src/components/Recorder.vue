@@ -486,7 +486,6 @@ export default class Recorder extends Vue {
       }
     }
     else if (data && data.response &&
-      // && data.response.statusCode < 400
       this.receivedRequestsForBulkMode.findIndex(i => i.endpoint === data.endpoint && i.method === data.method) === -1
     ) {
       this.receivedRequestsForBulkMode.push(data)

@@ -78,20 +78,17 @@ function createWindow() {
 
   // eslint-disable-next-line @typescript-eslint/ban-types
   ipc.on("request", (event, data: object) => {
-    console.log("request", data);
     if (backgroundWin) backgroundWin.webContents.send("request", data);
     else throw new Error("Background win is null on ipcMain request");
   });
 
   // eslint-disable-next-line @typescript-eslint/ban-types
   ipc.on("response", (event, data: object) => {
-    console.log("response", data);
     if (win) win.webContents.send("response", data);
     else throw new Error("Win is null on ipcMain response");
   });
 
   ipc.on('validation-failure', (event, data: ValidationNotification) => {
-    console.log(event, data)
     if (win) {
       // System notification
       const notification = new Notification({

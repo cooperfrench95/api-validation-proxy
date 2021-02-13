@@ -497,11 +497,6 @@ export default class RequestView extends Vue {
     return valid;
   }
 
-  @Watch('allValidInJSON')
-  handler2(val: boolean): void {
-    console.log(val, 'all valid in jhson')
-  }
-
   get allValidInJSON(): boolean {
     if (!this.selectedEndpoint) return false
     let valid = true
@@ -602,7 +597,6 @@ export default class RequestView extends Vue {
   viewValidationFailure(event: ViewValidationFailureEvent): void {
     const { id } = event;
     if (this.$refs[id]) {
-      console.log(this.$refs[id], "ref");
       this.$refs[id][0].$el.scrollIntoView();
     }
   }
@@ -622,7 +616,6 @@ export default class RequestView extends Vue {
   }
 
   pushRequestIntoQueue(incoming: IncomingRequest): void {
-    console.log(incoming.request.invalidFields);
     this.requests.unshift(incoming.request);
   }
 

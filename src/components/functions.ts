@@ -110,7 +110,6 @@ export function parseOutType(s: string): LineDescription {
 }
 
 export function validateType(input: string): boolean {
-  // console.log(input, 'input')
   try {
     const allowedTypes = [...typeOptions, 'array', 'object']
     const operators = ['<', '>', '=']
@@ -125,7 +124,6 @@ export function validateType(input: string): boolean {
         continue
       }
       if (!current.includes('string&length')) {
-        console.log('fail 1', current)
         return false
       }
       if (current.indexOf('string&length') === 0 && current.length > 13) {
@@ -142,7 +140,6 @@ export function validateType(input: string): boolean {
           }
         }
       }
-      console.log('fail 2')
       return false
     }
     return true

@@ -12,7 +12,6 @@ export class IPCHandler extends EventEmitter {
   public listen(): boolean {
     this.listening = true;
     ipc.on("response", (event, args) => {
-      console.log(args.event, args);
       this.emit(args.event, args);
     });
     return this.listening;

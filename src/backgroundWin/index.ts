@@ -8,18 +8,11 @@ import { ipcRenderer as ipc } from "electron";
 import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
 import { createValidationTemplate, saveValidationTemplate, validate } from "./validator";
-// import httpProxy from "http-proxy";
 import fs from 'fs';
-// import https from 'https';
-// process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-// const Agent = new https.Agent({
-//   rejectUnauthorized: false
-// })
 
 // Axios defaults to XHR in the browser (which electron technically is) so we then can't set headers like origin and host. So we override it to the node one here - it's not a security issue in this use case
 const safeAxios = axios.create({
   adapter: require("axios/lib/adapters/http"),
-  // httpsAgent: Agent,
   // No need to throw an error when status > 300, we want to pass the error through to the client instead of handling it here
   validateStatus: status => status >= 200,
 });
@@ -81,7 +74,6 @@ function getAllTemplates(path: string, grabFileContents = false) {
         resolve(contentsForResolve)
       }
     })
-    console.log('allTemplates', allTemplates)
   })
 }
 
@@ -98,7 +90,6 @@ function findRequestTypeFromURL(endpoint: string, fullPath: string) {
   const allPathParts = fullPath.split('/').filter((i, index) => index > 1)
   let rebuiltPath = `/${endpoint}`
   allPathParts.forEach(part => {
-    console.log('part', part)
     let found = false
     for (let i = 0; i < typeChecker.length; i += 1) {
       if (typeChecker[i](part)) {
@@ -111,27 +102,16 @@ function findRequestTypeFromURL(endpoint: string, fullPath: string) {
       rebuiltPath += `/${part}`
     }
   })
-  console.log('rebuild path', rebuiltPath)
   return rebuiltPath
 }
 
 ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
   switch (data.event) {
     case "change-backend-url":
-      console.log(data);
       actualURL = data.data.url;
       validationPath = data.data.path;
       getAllTemplates(data.data.path);
       safeAxios.defaults.headers.common.host = actualURL;
-      // Forward websockets
-      // proxy = httpProxy.createServer({
-      //   target: "ws://" + actualURL.replace('https://', '').replace('http://', ''),
-      //   ws: true
-      // });
-      // console.log('Websocket proxy', 'ws://' + actualURL, proxy)
-      // proxy.on("error", (e: Error) => {
-      //   console.log(e);
-      // });
       ipc.send("response", { url: actualURL, path: validationPath, event: "change-backend-url" });
       break;
     case "get-backend-url":
@@ -141,7 +121,6 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
       isRecording = true
       recordingMethod = data.data.method
       recordingEndpoint = data.data.endpoint
-      console.log('SENT ENDPOINT', data.data.endpoint, 'PARSED', recordingEndpoint)
       ipc.send('response', {
         success: true,
         event: 'record-endpoint'
@@ -202,31 +181,18 @@ ipc.on(RECEIVE_FROM_UI_THREAD, async (event, data) => {
 });
 
 app.all("*", async (req, res) => {
-  // Log details
-  // console.log("-------REQUEST---------");
-  // console.log(req.body, "BODY");
-  // console.log(req.headers, "HEADERS");
-  // console.log(req.method, "METHOD");
-  // console.log(req.params, "PARAMS");
-  // console.log(req.hostname, "HOST");
-  // console.log("-----------------------");
-
   const uniqueIdentifier = uuidv4();
 
   let target = actualURL;
   let endpoint = "/";
   let fullPath = "/";
-  console.log("params", req.params);
   if (req.params) {
     target = target.substr(0, target.length - 1);
-    console.log(target);
     const path: string[] = req.params[0].split("/");
     path.splice(0, 1);
-    console.log("here", path);
     // Add the path e.g. /employees/2/username to the target url
     target += req.params[0];
     for (let i = 0; i < path.length; i += 1) {
-      console.log("這裡", path[i]);
       if (i === 0) {
         endpoint = path[i];
         fullPath += path[i];
@@ -237,9 +203,7 @@ app.all("*", async (req, res) => {
     }
   }
 
-  console.log('fullPath', fullPath)
   const reqType = findRequestTypeFromURL(endpoint, fullPath)
-  console.log(recordingEndpoint, reqType)
 
   let doNotValidate = false
   if ((isRecording && reqType === recordingEndpoint && recordingMethod === req.method) || isRecordingAll) {
@@ -413,13 +377,10 @@ app.all("*", async (req, res) => {
         params: req.query,
       });
 
-      console.log(response)
-
       let resBody = response.data
       if (Array.isArray(response.data) && response.data.length) {
         resBody = [response.data[0]]
       }
-      console.log(resBody, response, method, endpoint)
 
       const responseValidation = await validate(
         endpoint,
