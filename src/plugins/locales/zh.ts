@@ -90,7 +90,8 @@ const chineseLang = {
   'GET requests should not have JSON bodies and are therefore ignored': 'GET請求不可有JSON body, 因此本程式不理會GET請求的JSON body',
   'Export as markdown': '下載Markdown',
   'View, edit, or export validation templates': '管理驗證文件',
-  Back: '回去'
+  Back: '回去',
+  'DELETE requests should not have JSON bodies and are therefore ignored': '請求不可有JSON body, 因此本程式不理會GET請求的JSON body'
 }
 
 export default chineseLang

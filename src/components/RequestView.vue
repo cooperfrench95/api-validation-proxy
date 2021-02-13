@@ -336,6 +336,9 @@
                         <v-subheader v-if="method === 'GET'">
                           {{ $t('GET requests should not have JSON bodies and are therefore ignored') }}
                         </v-subheader>
+                        <v-subheader v-else-if="method === 'DELETE'">
+                          {{ $t('DELETE requests should not have JSON bodies and are therefore ignored') }}
+                        </v-subheader>
                         <v-textarea
                           v-else
                           v-model="selectedEndpoint.unStringifiedContent.request[method][specificURL]"
@@ -504,7 +507,7 @@ export default class RequestView extends Vue {
     const { unStringifiedContent } = this.selectedEndpoint
     Object.keys(unStringifiedContent).forEach(type => {
       Object.keys(unStringifiedContent[type]).forEach(method => {
-        if (!(method === 'GET' && type === 'request')) {
+        if (!((method === 'GET' || method === 'DELETE') && type === 'request')) {
           Object.values(unStringifiedContent[type][method]).forEach(str => {
             if (typeof str === 'string') {
               const res = this.selectedEndpointJSONValid(str)
