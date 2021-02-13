@@ -1,4 +1,4 @@
-# API Validator - Prototype
+# API Validator
 
 ## 本程式提供中文支持
 
@@ -62,6 +62,8 @@ Continue and do the same for your response, then hit save. You should now see a 
 Send the same request again that you did in step 3, but this time change one of the values so that you expect it to fail validation. You should receive a system notification, and the offending request should show up in the requests view in the api validation app. You can then inspect the request and see exactly why it failed.
 
 Now, every time you send a request to that endpoint and the app is running, it will perform this validation for you.
+
+# Development/Build from source instructions
 
 ## Install dependencies
 ```
