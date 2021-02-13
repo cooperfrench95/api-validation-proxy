@@ -244,7 +244,7 @@
       </v-card-text>
     </v-card>
     <formatting-help :show="showFormattingHelp" @close="showFormattingHelp = false" />
-    <v-dialog v-if="viewingDetails" :value="true" width="600">
+    <v-dialog v-if="viewingDetails" :value="true" width="600" persistent>
       <v-card width="600">
         <v-card-title>
           {{ ('Request details') }}
@@ -291,7 +291,7 @@
                       </tbody>
                     </v-simple-table>
                     <p class="cardTextClass">
-                      {{ beautify(viewingDetails.request.data, $t, JSONDisplayLimit, true) }}
+                      {{ beautify(viewingDetails.request.data, t, JSONDisplayLimit, true) }}
                     </p>
                   </v-col>
                 </v-expansion-panel-content>
@@ -319,7 +319,7 @@
                       </tbody>
                     </v-simple-table>
                     <p class="cardTextClass">
-                      {{ beautify(viewingDetails.response.data, $t, JSONDisplayLimit, true) }}
+                      {{ beautify(viewingDetails.response.data, t, JSONDisplayLimit, true) }}
                     </p>
                   </v-col>
                 </v-expansion-panel-content>
@@ -377,6 +377,7 @@ export default class Recorder extends Vue {
   convertBackToObject = convertBackToObject;
   getLinesForDisplay = getLinesForDisplay;
   beautify = beautify;
+  t = this.$t.bind(this);
 
   mounted(): void {
     this.handler.on("recording", this.handleSuccessfulRecording);

@@ -1,7 +1,7 @@
 import { TranslateResult } from 'vue-i18n';
 import { LineDescription, ConversionResult, unStringifiedContent } from './../types';
 
-interface Translator {
+export interface Translator {
   $t(key: string, values?: unknown[]): TranslateResult
 }
 

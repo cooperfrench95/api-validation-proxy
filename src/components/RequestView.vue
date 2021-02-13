@@ -187,7 +187,7 @@
                         <span class="subtitle text-left">{{ $t('Request Body') }}</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
-                        {{ beautify(request.data, $t, JSONDisplayLimit, true) }}
+                        {{ beautify(request.data, t, JSONDisplayLimit, true) }}
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -275,7 +275,7 @@
                         <span class="subtitle text-left">{{ $t('Response Body') }}</span>
                       </v-card-title>
                       <v-card-text class="cardTextClass">
-                        {{ beautify(request.response.data, $t, JSONDisplayLimit, true) }}
+                        {{ beautify(request.response.data, t, JSONDisplayLimit, true) }}
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -441,6 +441,7 @@ export default class RequestView extends Vue {
   beautify = beautify;
   getLinesForDisplay = getLinesForDisplay;
   validateType = validateType;
+  t = this.$t.bind(this);
 
   @Watch('requests')
   onRequestsChange(val: Request[]): void {
