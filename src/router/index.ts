@@ -6,6 +6,7 @@ Vue.use(VueRouter);
 
 let isWorker = false;
 if (process.env.IS_ELECTRON) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   isWorker = require("electron").remote.getCurrentWindow().id > 1;
   if (isWorker) {
     Main = () => import("../backgroundWin/entry.vue");
