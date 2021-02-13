@@ -75,6 +75,7 @@ function determineType(i: unknown) {
   return type;
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 function allPropertiesExist(obj: object, template: object, originalKey: string, lang: 'zh'|'en') {
   console.log('key', originalKey, 'template', template, 'obj', obj)
   const missingFields: invalidField[] = []
@@ -104,7 +105,9 @@ function allPropertiesExist(obj: object, template: object, originalKey: string, 
 }
 
 function recurseThroughObject(
+  // eslint-disable-next-line @typescript-eslint/ban-types
   obj: object | unknown[],
+  // eslint-disable-next-line @typescript-eslint/ban-types
   template: object | unknown[],
   lang: 'zh'|'en',
   arrayCheckLimit: number,
@@ -140,6 +143,7 @@ function recurseThroughObject(
           reason: $t("Could not determine desired type for this key in your template. Does your template contain an empty array or object? Always-empty arrays or objects are not valid types.", lang)
         })
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       obj.forEach((item: any, index: number) => {
         // Only fully validate up to the [arrayCheckLimit]th object in arrays
         if ((desiredType === 'object' || desiredType === 'array') && (index - 1) < arrayCheckLimit) {
@@ -273,8 +277,8 @@ function recurseThroughObject(
 }
 
 function checkObject(
-  obj: object,
-  template: object | object[],
+  obj: Record<string, unknown>,
+  template: Record<string, unknown> | Record<string, unknown>[],
   lang: 'zh'|'en',
   arrayCheckLimit: number,
 ): validationResult {
@@ -324,7 +328,7 @@ function checkObject(
 
 async function validate(
   endpoint: string,
-  body: object,
+  body: Record<string, unknown>,
   type: 'request' | 'response',
   method: string,
   pathToValidation: string,
@@ -347,6 +351,7 @@ async function validate(
   return { couldBeValidated: false };
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 function createValidationTemplate(body: object): object | string[] | object[] | null {
   if (typeCheckers.object(body)) {
     const template = {};

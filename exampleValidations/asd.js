@@ -5,7 +5,7 @@ module.exports = {
         },
         "POST": {
             "/asd/:number": {
-                "id": "uuid",
+                "id": "string",
                 "start": "timestamp",
                 "end": "timestamp",
                 "title": "string&length>10",
@@ -25,7 +25,7 @@ module.exports = {
                 "code": "number",
                 "className": "string",
                 "data": {
-                    "url": "string"
+                    "url": "uuid"
                 },
                 "errors": {}
             }
@@ -37,7 +37,7 @@ module.exports = {
                 "code": "number",
                 "className": "string",
                 "data": {
-                    "url": "string"
+                    "url": "timestamp"
                 },
                 "errors": {}
             }

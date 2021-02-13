@@ -22,6 +22,8 @@ module.exports = {
     semi: "off",
     "space-before-function-paren": "off",
     "brace-style": [1, "stroustrup"],
-    "comma-dangle": "off"
-  }
+    "comma-dangle": "off",
+    'no-useless-constructor': 'off',
+    '@typescript-eslint/no-useless-constructor': 'error',
+  },
 };

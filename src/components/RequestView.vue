@@ -344,6 +344,7 @@
                           role="textbox"
                           auto-grow
                           aria-label="Edit your JSON here"
+                          @change="(val) => $set(selectedEndpoint.unStringifiedContent.response[method]. specificURL, val)"
                         />
                       </v-col>
                     </v-row>
@@ -371,6 +372,7 @@
                           role="textbox"
                           auto-grow
                           aria-label="Edit your JSON here"
+                          @change="(val) => $set(selectedEndpoint.unStringifiedContent.response[method]. specificURL, val)"
                         />
                       </v-col>
                     </v-row>
@@ -396,7 +398,7 @@
 
 <script lang="ts">
 import moment from "moment";
-import * as Promise from 'bluebird';
+import * as bluebird from 'bluebird';
 import { saveAs } from 'file-saver';
 import { Component, Vue, Watch } from "vue-property-decorator";
 import { IPCHandler } from "../IPCHandler";
@@ -441,28 +443,28 @@ export default class RequestView extends Vue {
   validateType = validateType;
 
   @Watch('requests')
-  onRequestsChange(val: Request[]) {
+  onRequestsChange(val: Request[]): void {
     if (val.length > this.requestMemoryLimit) {
       val.splice(0, 1)
     }
   }
 
   @Watch('requestMemoryLimit')
-  onRequestMemoryLimitChange(val: number) {
+  onRequestMemoryLimitChange(val: number): void {
     if (val && !isNaN(val)) {
       localStorage.setItem('requestMemoryLimit', `${val}`)
     }
   }
 
   @Watch('JSONDisplayLimit')
-  onJSONDisplayLimitChange(val: number) {
+  onJSONDisplayLimitChange(val: number): void {
     if (val && !isNaN(val)) {
       localStorage.setItem('JSONDisplayLimit', `${val}`)
     }
   }
 
   @Watch('arrayCheckLimit')
-  onArrayCheckLimitChange(val: number) {
+  onArrayCheckLimitChange(val: number): void {
     if (val && !isNaN(val)) {
       localStorage.setItem('arrayCheckLimit', `${val}`)
       this.handler.send('arrayCheckLimit', {
@@ -472,7 +474,7 @@ export default class RequestView extends Vue {
     }
   }
 
-  selectedEndpointJSONValid(section: string) {
+  selectedEndpointJSONValid(section: string): boolean {
     if (!this.selectedEndpoint) return true
     let valid = false;
     try {
@@ -495,25 +497,32 @@ export default class RequestView extends Vue {
     return valid;
   }
 
-  get allValidInJSON() {
+  @Watch('allValidInJSON')
+  handler2(val: boolean): void {
+    console.log(val, 'all valid in jhson')
+  }
+
+  get allValidInJSON(): boolean {
     if (!this.selectedEndpoint) return false
     let valid = true
     const { unStringifiedContent } = this.selectedEndpoint
     Object.keys(unStringifiedContent).forEach(type => {
       Object.keys(unStringifiedContent[type]).forEach(method => {
-        Object.values(unStringifiedContent[type][method]).forEach(str => {
-          if (typeof str === 'string') {
-            const res = this.selectedEndpointJSONValid(str)
-            if (!res) valid = false
-          }
-        })
+        if (!(method === 'GET' && type === 'request')) {
+          Object.values(unStringifiedContent[type][method]).forEach(str => {
+            if (typeof str === 'string') {
+              const res = this.selectedEndpointJSONValid(str)
+              if (!res) valid = false
+            }
+          })
+        }
       })
     })
     return valid
   }
 
   @Watch('drawer')
-  async onDrawerOpenAndClose() {
+  async onDrawerOpenAndClose(): Promise<void> {
     const allTemplates = await this.handler.send('getAllTemplates', {
       event: 'getAllTemplates'
     })
@@ -530,7 +539,7 @@ export default class RequestView extends Vue {
     }
   }
 
-  selectEndpoint(obj: EndpointContent) {
+  selectEndpoint(obj: EndpointContent): void {
     if (obj.content) {
       const stringifiedSome: unStringifiedContent = {
         request: {},
@@ -557,7 +566,7 @@ export default class RequestView extends Vue {
     }
   }
 
-  async mounted() {
+  async mounted(): Promise<void> {
     if (!this.handler.isListening()) {
       this.handler.listen();
     }
@@ -583,14 +592,14 @@ export default class RequestView extends Vue {
     this.handler.on("view-validation-failure", this.viewValidationFailure);
   }
 
-  beforeDestroy() {
+  beforeDestroy(): void {
     this.handler.on("new-request", this.pushRequestIntoQueue);
     this.handler.on("new-response", this.pushResponseIntoQueue);
     this.handler.on("backend-down", this.backendDown);
     this.handler.on("view-validation-failure", this.viewValidationFailure);
   }
 
-  viewValidationFailure(event: ViewValidationFailureEvent) {
+  viewValidationFailure(event: ViewValidationFailureEvent): void {
     const { id } = event;
     if (this.$refs[id]) {
       console.log(this.$refs[id], "ref");
@@ -598,11 +607,11 @@ export default class RequestView extends Vue {
     }
   }
 
-  backendDown() {
+  backendDown(): void {
     this.connectionError = true;
   }
 
-  pushResponseIntoQueue(incoming: IncomingResponse) {
+  pushResponseIntoQueue(incoming: IncomingResponse): void {
     const correspondingRequest = this.requests.find((i) => {
       return i.id === incoming.response.id;
     });
@@ -612,7 +621,7 @@ export default class RequestView extends Vue {
     }
   }
 
-  pushRequestIntoQueue(incoming: IncomingRequest) {
+  pushRequestIntoQueue(incoming: IncomingRequest): void {
     console.log(incoming.request.invalidFields);
     this.requests.unshift(incoming.request);
   }
@@ -621,7 +630,7 @@ export default class RequestView extends Vue {
     return moment(input).fromNow();
   }
 
-  announce(message: string) {
+  announce(message: string): void {
     this.announcerDead = false
     this.$announcer.set(message)
     setTimeout(() => {
@@ -629,11 +638,11 @@ export default class RequestView extends Vue {
     }, 5000);
   }
 
-  getKeys(obj: object) {
+  getKeys(obj: Record<string, unknown>): string[] {
     return Object.keys(obj)
   }
 
-  async saveSelectedEndpoint(obj: SelectedEndpointContent) {
+  async saveSelectedEndpoint(obj: SelectedEndpointContent): Promise<void> {
     const { unStringifiedContent } = obj
     const endPointsWithReqAndResponse = {}
     Object.keys(unStringifiedContent).map(async (type: string) => {
@@ -666,8 +675,13 @@ export default class RequestView extends Vue {
         })
       }
     })
-    await Promise.mapSeries(Object.keys(endPointsWithReqAndResponse), async (key: string) => {
-      return Promise.mapSeries(Object.keys(endPointsWithReqAndResponse[key]), async (method: string) => {
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    await bluebird.mapSeries(Object.keys(endPointsWithReqAndResponse), async (key: string) => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      return bluebird.mapSeries(Object.keys(endPointsWithReqAndResponse[key]), async (method: string) => {
         return this.handler.send('save-validation', {
           endpoint: key,
           method: method,
@@ -680,7 +694,7 @@ export default class RequestView extends Vue {
     this.onDrawerOpenAndClose()
   }
 
-  async exportAllAsMarkdown() {
+  async exportAllAsMarkdown(): Promise<void> {
     await this.onDrawerOpenAndClose()
     const ultraObjectForMDFile: unStringifiedContent = {
       request: {},
@@ -703,7 +717,7 @@ export default class RequestView extends Vue {
       })
     })
     const result = await convertToMarkdown(ultraObjectForMDFile)
-    const file = new File([result], "endpoints.md", { type: 'text/plain;charset=utf-8'})
+    const file = new File([result], "endpoints.md", { type: 'text/plain;charset=utf-8' })
     saveAs(file)
   }
 }

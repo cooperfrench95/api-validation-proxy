@@ -366,8 +366,10 @@ export default class Recorder extends Vue {
   viewingDetails: RecordingResult|null = null;
   searchString = "";
   receivedRequestsForBulkMode: RecordingResult[] = [];
+  // eslint-disable-next-line @typescript-eslint/ban-types
   requestResult: object | string[] | object[] | null = null;
   modifiableRequestTypings: LineDescription[] = [];
+  // eslint-disable-next-line @typescript-eslint/ban-types
   responseResult: object | string[] | object[] | null = null;
   modifiableResponseTypings: LineDescription[] = [];
   parseOutType = parseOutType;
@@ -376,7 +378,7 @@ export default class Recorder extends Vue {
   getLinesForDisplay = getLinesForDisplay;
   beautify = beautify;
 
-  mounted() {
+  mounted(): void {
     this.handler.on("recording", this.handleSuccessfulRecording);
     this.handler.on("save-validation", this.handleSaveEvent);
     interface KeyboardEvent {
@@ -394,21 +396,21 @@ export default class Recorder extends Vue {
     document.onkeydown = KeyPress
   }
 
-  beforeDestroy() {
+  beforeDestroy(): void {
     this.handler.off("recording", this.handleSuccessfulRecording);
     this.handler.off("save-validation", this.handleSaveEvent);
   }
 
-  get filteredResponsesBulkMode() {
+  get filteredResponsesBulkMode(): RecordingResult[] {
     if (!this.searchString) return this.receivedRequestsForBulkMode
     return this.receivedRequestsForBulkMode.filter(i => i.endpoint.includes(this.searchString))
   }
 
-  get totalSelectedBulkMode() {
+  get totalSelectedBulkMode(): number {
     return this.receivedRequestsForBulkMode.filter(i => i.shouldSave).length
   }
 
-  selectAll() {
+  selectAll(): void {
     if (this.receivedRequestsForBulkMode.length) {
       const selectedAlready = this.receivedRequestsForBulkMode[0].shouldSave
       const newArray = this.receivedRequestsForBulkMode.map(i => {
@@ -419,15 +421,15 @@ export default class Recorder extends Vue {
     }
   }
 
-  get validEndpointNameAndMethod() {
+  get validEndpointNameAndMethod(): boolean {
     return (
-      this.endpointName &&
+      !!this.endpointName &&
       /\/[A-Z|a-z]/g.test(this.endpointName) &&
       !!this.method
     );
   }
 
-  get show() {
+  get show(): boolean {
     return this.value;
   }
 
@@ -435,7 +437,7 @@ export default class Recorder extends Vue {
     this.$emit("input", val);
   }
 
-  record() {
+  record(): void {
     this.recording = true;
     this.$announcer.set(`${this.$t('Listening. Please send a ')}${this.method}${this.$t(' request to ')}${this.endpointName}`)
     this.handler.send("record-endpoint", {
@@ -444,14 +446,14 @@ export default class Recorder extends Vue {
     });
   }
 
-  recordAll() {
+  recordAll(): void {
     this.singleEndpointMode = false
     this.hasChosenMode = true
     this.recording = true;
     this.handler.send("record-all-endpoints", {});
   }
 
-  handleSuccessfulRecording(data: RecordingResult) {
+  handleSuccessfulRecording(data: RecordingResult): void {
     if (this.singleEndpointMode) {
       this.requestResult = data.requestTemplate;
       const ignoreRequestPortion = (this.method === 'GET' || this.method === 'DELETE')
@@ -491,11 +493,11 @@ export default class Recorder extends Vue {
     }
   }
 
-  viewDetailsForRequest(request: RecordingResult) {
+  viewDetailsForRequest(request: RecordingResult): void {
     this.viewingDetails = request
   }
 
-  get JSONRequestStringValid() {
+  get JSONRequestStringValid(): boolean {
     let valid = false;
     try {
       const object = JSON.parse(this.JSONRequestString);
@@ -518,7 +520,7 @@ export default class Recorder extends Vue {
   }
 
   @Watch('JSONRequestStringValid')
-  onJSONRequestStringValidChange(val: boolean) {
+  onJSONRequestStringValidChange(val: boolean): void {
     if (!val) {
       this.$announcer.set(`${this.$t('Your JSON is invalid. Press ctrl+h to view the formatting help')}`)
     }
@@ -527,7 +529,7 @@ export default class Recorder extends Vue {
     }
   }
 
-  get JSONResponseStringValid() {
+  get JSONResponseStringValid(): boolean {
     let valid = false;
     try {
       const object = JSON.parse(this.JSONResponseString);
@@ -549,7 +551,7 @@ export default class Recorder extends Vue {
     return valid;
   }
 
-  viewConverted(e: 'as json'|'basic') {
+  viewConverted(e: 'as json'|'basic'): void {
     if (e === 'basic') {
       // Convert JSON back to basic
       this.convertRequestStringToArray()
@@ -562,7 +564,7 @@ export default class Recorder extends Vue {
     }
   }
 
-  convertRequestStringToArray() {
+  convertRequestStringToArray(): void {
     const ignoreRequestPortion = (this.method === 'GET' || this.method === 'DELETE')
     if (!ignoreRequestPortion) {
       const object = JSON.parse(this.JSONRequestString)
@@ -570,7 +572,7 @@ export default class Recorder extends Vue {
     }
   }
 
-  convertRequestArrayToString() {
+  convertRequestArrayToString(): void {
     if (!(this.method === 'GET' || this.method === 'DELETE')) {
       const converted = this.convertBackToObject(this.modifiableRequestTypings, this.$t);
       this.JSONRequestString = converted.asString;
@@ -581,12 +583,12 @@ export default class Recorder extends Vue {
     }
   }
 
-  convertResponseStringToArray() {
+  convertResponseStringToArray(): void {
     const object = JSON.parse(this.JSONResponseString)
     this.modifiableResponseTypings = this.getLinesForDisplay(object, this.$t)
   }
 
-  convertResponseArrayToString() {
+  convertResponseArrayToString(): void {
     const converted = this.convertBackToObject(
       this.modifiableResponseTypings,
       this.$t
@@ -599,7 +601,7 @@ export default class Recorder extends Vue {
   }
 
   @Watch('JSONResponseStringValid')
-  onJSONResponseStringValidChange(val: boolean) {
+  onJSONResponseStringValidChange(val: boolean): void {
     if (!val) {
       this.$announcer.set(`${this.$t('Your JSON is invalid. Press ctrl+h to view the formatting help')}`)
     }
@@ -608,9 +610,9 @@ export default class Recorder extends Vue {
     }
   }
 
-  async save() {
+  async save(): Promise<void> {
     if (this.singleEndpointMode === false) {
-      const promises: Promise<IPCHandlerResponse<string|object>>[] = []
+      const promises: Promise<IPCHandlerResponse<string|Record<string, unknown>>>[] = []
       this.receivedRequestsForBulkMode.forEach(i => {
         if (i.shouldSave) {
           let requestTemplate = '{}'
@@ -646,7 +648,7 @@ export default class Recorder extends Vue {
     }
   }
 
-  handleSaveEvent(e: SaveTemplateResult) {
+  handleSaveEvent(e: SaveTemplateResult): void {
     if (this.singleEndpointMode) {
       if (e.success) {
         this.$emit('announcement', this.$t('Validation template saved. Dialog closed'))

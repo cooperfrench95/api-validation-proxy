@@ -8,7 +8,7 @@ import { ipcRenderer as ipc } from "electron";
 import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
 import { createValidationTemplate, saveValidationTemplate, validate } from "./validator";
-import httpProxy from "http-proxy";
+// import httpProxy from "http-proxy";
 import fs from 'fs';
 // import https from 'https';
 // process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -25,7 +25,7 @@ const safeAxios = axios.create({
 });
 
 const corsOptions = {
-  origin: (requestOrigin: string | undefined, callback: Function) => {
+  origin: (requestOrigin: string | undefined, callback: (O: null, ok: boolean) => void) => {
     callback(null, true);
   }
 };
@@ -51,6 +51,7 @@ const allTemplates = {}
 function getAllTemplates(path: string, grabFileContents = false) {
   const contents = {}
   const contentsForResolve = {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return new Promise((resolve, reject) => {
     fs.readdir(path, (err, files) => {
       if (err) {

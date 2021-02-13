@@ -1,28 +1,34 @@
+/* eslint-disable @typescript-eslint/ban-types */
+export type invalidField = {
+  key: string;
+  reason: string;
+};
+
+export interface Response {
+  id: string;
+  headers: Record<string, unknown>;
+  method: string;
+  statusCode: number;
+  statusText: string;
+  data: Record<string, unknown>;
+  isValid: boolean;
+  invalidFields?: invalidField[];
+  responseTime: number;
+}
+
 export interface Request {
   id: string;
-  headers: object;
+  headers: Record<string, unknown>;
   method: string;
-  data: object;
+  data: Record<string, unknown>;
   isValid: boolean;
   invalidFields?: invalidField[];
   origin: string;
   destination: string;
   endpoint: string;
-  params: object;
+  params: Record<string, unknown>;
   timestamp: number;
   response?: Response;
-}
-
-export interface Response {
-  id: string;
-  headers: object;
-  method: string;
-  statusCode: number;
-  statusText: string;
-  data: object;
-  isValid: boolean;
-  invalidFields?: invalidField[];
-  responseTime: number;
 }
 
 export interface IncomingRequest {
@@ -35,11 +41,6 @@ export interface IncomingResponse {
   response: Response;
 }
 
-export type invalidField = {
-  key: string;
-  reason: string;
-};
-
 export type validationResult = {
   valid: boolean;
   invalidFields?: Array<invalidField>;
@@ -49,6 +50,7 @@ export type IPCHandlerResponse<T> = {
   event: T;
   url?: string;
   path?: string;
+  // eslint-disable-next-line @typescript-eslint/ban-types
   templates?: object;
 };
 
@@ -92,15 +94,15 @@ export interface LineDescription {
 }
 
 export interface ConversionResult {
-  asObject: object;
+  asObject: Record<string, unknown>;
   asString: string;
 }
 
 export interface SaveTemplateCommand {
   endpoint: string;
   method: string;
-  requestTemplate: object;
-  responseTemplate: object;
+  requestTemplate: Record<string, unknown>;
+  responseTemplate: Record<string, unknown>;
 }
 
 export interface SaveTemplateResult {
@@ -110,6 +112,7 @@ export interface SaveTemplateResult {
 
 export interface EndpointContent {
   name: string;
+  // eslint-disable-next-line @typescript-eslint/ban-types
   content: object;
 }
 

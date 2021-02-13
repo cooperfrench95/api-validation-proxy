@@ -13,7 +13,7 @@ const chineseLang = {
   'Enter URL': '輸入網址',
   'Your backend URL': '您的後端網址',
   'Would you like to generate a template for a single endpoint, or automatically generate templates for multiple endpoints?': '您想要自己產生一位端點的驗證文件還是自動式產生許多端點的驗證文件?',
-  'WARNING: Choosing multiple endpoint mode could cause some of your existing templates to be overriden. Proceed with caution.': '注意: 自動產生的功能會導致已存在的驗證文件被複寫了. 小心地選擇',
+  'WARNING: Choosing multiple endpoint mode could cause some of your existing templates to be overwritten. Proceed with caution.': '注意: 自動產生的功能會導致已存在的驗證文件被複寫了. 小心地選擇',
   Single: '單位端點產生模式',
   Multiple: '多位端點自動產生模式',
   'Enter details': '輸入資訊',
@@ -90,7 +90,7 @@ const chineseLang = {
   'GET requests should not have JSON bodies and are therefore ignored': 'GET請求不可有JSON body, 因此本程式不理會GET請求的JSON body',
   'Export as markdown': '下載Markdown',
   'View, edit, or export validation templates': '管理驗證文件',
-  'Back': '回去'
+  Back: '回去'
 }
 
 export default chineseLang

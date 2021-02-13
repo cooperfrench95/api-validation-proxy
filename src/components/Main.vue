@@ -89,7 +89,7 @@ export default class Main extends Vue {
   @Action("setPath") setPath!: ActionMethod;
   @Action("setURL") setURL!: ActionMethod;
 
-  mounted() {
+  mounted(): void {
     setTimeout(() => {
       this.getLang();
       this.getURL();
@@ -113,11 +113,12 @@ export default class Main extends Vue {
 
   pathRules = [
     (v: string): boolean | string | LocaleMessages => {
+      // eslint-disable-next-line no-useless-escape
       return (!!v && /^(([a-zA-Z]{1}:\\)|\/)([a-zA-Z_-\s0-9.\]\\\/]+)(\\|\/)$/.test(v)) || this.$t("Invalid path")
     }
   ]
 
-  getLang() {
+  getLang(): void {
     const localLang = localStorage.getItem('lang')
     if (localLang && ['en', 'zh'].includes(localLang)) {
       this.lang = localLang
@@ -125,7 +126,7 @@ export default class Main extends Vue {
   }
 
   @Watch('lang')
-  async setLang(val: 'en'|'zh') {
+  async setLang(val: 'en'|'zh'): Promise<void> {
     moment.locale(val)
     this.$i18n.locale = val
     await this.handler.send('change-lang', {
@@ -134,7 +135,7 @@ export default class Main extends Vue {
     })
   }
 
-  async getURL() {
+  async getURL(): Promise<void> {
     const response = await this.handler.send("get-backend-url");
     if (localStorage.getItem('url')) {
       this.url = localStorage.getItem('url') || ''
@@ -154,7 +155,7 @@ export default class Main extends Vue {
     }
   }
 
-  async confirmURL() {
+  async confirmURL(): Promise<void> {
     const response = await this.handler.send("change-backend-url", {
       event: "change-backend-url",
       url: this.url,
@@ -168,7 +169,7 @@ export default class Main extends Vue {
   }
 
   @Watch('valid')
-  onValidChanged(val: boolean) {
+  onValidChanged(val: boolean): void {
     if (val) {
       this.$announcer.set(`${this.$t('You can now click the continue button')}`)
     }
@@ -177,8 +178,8 @@ export default class Main extends Vue {
     }
   }
 
-  get valid() {
-    return this.url && this.urlRules[0](this.url) === true && this.path && this.pathRules[0](this.path) === true;
+  get valid(): boolean {
+    return !!this.url && this.urlRules[0](this.url) === true && !!this.path && this.pathRules[0](this.path) === true;
   }
 }
 </script>

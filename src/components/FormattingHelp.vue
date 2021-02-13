@@ -27,9 +27,9 @@
               <li>{{ $t('Strings can have a length property to indicate the desired length of the string. See the following examples:') }}
                 <ul>
                   <li>{{ $t('String with length more than 0: ') }}<code>string&length>0</code></li>
-                  <li>{{ $t('String with length less than 10: ') }}<code>{{ 'string&length<10' }}</code></li>
+                  <li>{{ $t('String with length less than 10: ') }}<code>{{ stringLengthLTTen }}</code></li>
                   <li>{{ $t('String with length more than or equal to 10: ') }}<code>string&length>=10</code></li>
-                  <li>{{ $t('String with length less than or equal to 10: ') }}<code>string&length<=10</code></li>
+                  <li>{{ $t('String with length less than or equal to 10: ') }}<code>{{ stringLTorEqToTen }}</code></li>
                   <li>{{ $t('String with length exactly 4: ') }}<code>string&length=4</code></li>
                 </ul>
               </li>
@@ -65,5 +65,8 @@ export default class FormattingHelp extends Vue {
     "number",
     "boolean",
   ];
+
+  stringLTorEQToTen = 'string&length<=10'
+  stringLengthLTTen = 'string&length<10'
 }
 </script>

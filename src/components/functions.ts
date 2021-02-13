@@ -1,5 +1,9 @@
+import { TranslateResult } from 'vue-i18n';
 import { LineDescription, ConversionResult, unStringifiedContent } from './../types';
-import fs from 'fs';
+
+interface Translator {
+  $t(key: string, values?: unknown[]): TranslateResult
+}
 
 export const typeOptions = [
   "uuid",
@@ -106,7 +110,7 @@ export function parseOutType(s: string): LineDescription {
 }
 
 export function validateType(input: string): boolean {
-  console.log(input, 'input')
+  // console.log(input, 'input')
   try {
     const allowedTypes = [...typeOptions, 'array', 'object']
     const operators = ['<', '>', '=']
@@ -121,7 +125,7 @@ export function validateType(input: string): boolean {
         continue
       }
       if (!current.includes('string&length')) {
-        console.log('fail 1')
+        console.log('fail 1', current)
         return false
       }
       if (current.indexOf('string&length') === 0 && current.length > 13) {
@@ -149,7 +153,13 @@ export function validateType(input: string): boolean {
   }
 }
 
-export function beautify(input: object, $t: Function, JSONDisplayLimit = 4000, limit = false): string {
+export function beautify(
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  input: object|object[]|string[],
+  $t: Translator["$t"],
+  JSONDisplayLimit = 4000,
+  limit = false
+): string {
   const beautiful = JSON.stringify(input, null, 4);
   if (beautiful.length > JSONDisplayLimit && limit) {
     return beautiful.substr(0, JSONDisplayLimit) + `\n\n...${$t('object concatenated for performance reasons')}`
@@ -177,7 +187,10 @@ export function removeWhitespaceNotInKey(input: string, optional: boolean): stri
   return noWhiteSpace.split(modifiedKey).join(savedKey);
 }
 
-export function convertBackToObject(input: LineDescription[], $t: Function): ConversionResult {
+export function convertBackToObject(
+  input: LineDescription[],
+  $t: Translator["$t"],
+): ConversionResult {
   let returnItem = "";
   input.forEach((item) => {
     if (item.type) {
@@ -209,7 +222,11 @@ export function convertBackToObject(input: LineDescription[], $t: Function): Con
   };
 }
 
-export function getLinesForDisplay(input: object | object[], $t: Function): LineDescription[] {
+export function getLinesForDisplay(
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  input: object | object[]|string[],
+  $t: Translator["$t"],
+): LineDescription[] {
   const beautified = beautify(input, $t);
   const split = beautified.split("\n");
   const typesParsed = split.map((i) => {
